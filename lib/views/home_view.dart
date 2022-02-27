@@ -119,7 +119,7 @@ class _HomeViewState extends State<HomeView> {
                       }
                     },
                     child: const Icon(
-                      Icons.arrow_back,
+                      Icons.change_circle,
                       size: 20.0,
                     ),
                     radius: 20.0,
