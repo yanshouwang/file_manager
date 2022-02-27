@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:file_manager/models.dart';
 import 'package:file_manager/util.dart' as util;
 import 'package:flutter/material.dart';
+import 'package:tuple/tuple.dart';
+
+typedef DirectoryAndEntities = Tuple2<Directory, List<FileSystemEntity>>;
 
 class HomeView extends StatefulWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -12,14 +15,14 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  late ValueNotifier<Directory?> directoryNotifier;
+  late ValueNotifier<DirectoryAndEntities?> directoryAndEntitiesNotifier;
   late ValueNotifier<File?> fileNotifier;
 
   @override
   void initState() {
     super.initState();
 
-    directoryNotifier = ValueNotifier(null);
+    directoryAndEntitiesNotifier = ValueNotifier(null);
     fileNotifier = ValueNotifier(null);
   }
 
@@ -31,16 +34,14 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget buildBoby(BuildContext context) {
-    return ValueListenableBuilder<Directory?>(
-      valueListenable: directoryNotifier,
-      builder: (context, directory, child) {
-        if (directory == null) {
-          final drives = util.getDrivesByWin32();
-          // final drives = util.getDrivesByWMI();
+    return ValueListenableBuilder<Tuple2<Directory, List<FileSystemEntity>>?>(
+      valueListenable: directoryAndEntitiesNotifier,
+      builder: (context, directoryAndEntities, child) {
+        if (directoryAndEntities == null) {
+          final drives = util.getDrives();
           return buildDrives(context, drives);
         } else {
-          final entities = directory.listSync();
-          return buildEntities(context, entities);
+          return buildDirectoryAndEntities(context, directoryAndEntities);
         }
       },
     );
@@ -76,7 +77,8 @@ class _HomeViewState extends State<HomeView> {
               child: Material(
                 child: InkWell(
                   onDoubleTap: () {
-                    directoryNotifier.value = Directory(drive.name);
+                    final directory = Directory(drive.name);
+                    openDirectory(context, directory);
                   },
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -102,40 +104,117 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget buildEntities(BuildContext context, List<FileSystemEntity> entities) {
-    return ListView.separated(
+  Widget buildDirectoryAndEntities(
+    BuildContext context,
+    DirectoryAndEntities directoryAndEntities,
+  ) {
+    final directory = directoryAndEntities.item1;
+    final entities = directoryAndEntities.item2;
+    final theme = Theme.of(context);
+    final urlController = TextEditingController(text: directory.path);
+    return Padding(
       padding: const EdgeInsets.all(12.0),
-      itemCount: entities.length,
-      itemBuilder: (context, i) {
-        final entity = entities[i];
-        final name = entity.path.substring(entity.parent.path.length);
-        final stat = entity.statSync();
-        final image = stat.type == FileSystemEntityType.directory
-            ? 'images/folder.png'
-            : 'images/unknown.png';
-        return Row(
-          children: [
-            Image.asset(
-              image,
-              width: 20.0,
-              height: 20.0,
+      child: Column(
+        children: [
+          TextField(
+            controller: urlController,
+            decoration: InputDecoration(
+              icon: InkResponse(
+                onTap: () {
+                  if (directory.parent.path == directory.path) {
+                    directoryAndEntitiesNotifier.value = null;
+                  } else {
+                    openDirectory(context, directory.parent);
+                  }
+                },
+                child: const Icon(
+                  Icons.arrow_back,
+                  size: 20.0,
+                ),
+                radius: 20.0,
+              ),
+              isCollapsed: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 8.0,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline,
+                ),
+                borderRadius: BorderRadius.zero,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: theme.colorScheme.primary,
+                ),
+                borderRadius: BorderRadius.zero,
+              ),
             ),
-            const SizedBox(width: 4.0),
-            Text(name),
-          ],
-        );
-      },
-      separatorBuilder: (context, i) {
-        return const SizedBox(height: 4.0);
-      },
+          ),
+          const SizedBox(height: 12.0),
+          Expanded(
+            child: ListView.separated(
+              itemCount: entities.length,
+              itemBuilder: (context, i) {
+                final entity = entities[i];
+                final name = entity.path.split(r'\').last;
+                final image = entity is Directory
+                    ? 'images/directory.png'
+                    : name.endsWith('.png')
+                        ? 'images/image.png'
+                        : 'images/unknown.png';
+                return InkWell(
+                  onDoubleTap: () async {
+                    if (entity is Directory) {
+                      openDirectory(context, entity);
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      Image.asset(
+                        image,
+                        width: 24.0,
+                        height: 24.0,
+                      ),
+                      const SizedBox(width: 4.0),
+                      Text(name),
+                    ],
+                  ),
+                );
+              },
+              separatorBuilder: (context, i) {
+                return const SizedBox(height: 8.0);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   void dispose() {
-    directoryNotifier.dispose();
+    directoryAndEntitiesNotifier.dispose();
     fileNotifier.dispose();
     super.dispose();
+  }
+
+  void openDirectory(BuildContext context, Directory directory) async {
+    try {
+      final entities = await directory.list().toList();
+      directoryAndEntitiesNotifier.value =
+          DirectoryAndEntities(directory, entities);
+    } catch (e) {
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            content: Text('$e'),
+          );
+        },
+      );
+    }
   }
 
   // Widget buildBoby(BuildContext context) {

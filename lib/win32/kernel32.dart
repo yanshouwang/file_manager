@@ -1,11 +1,10 @@
+// ignore_for_file: constant_identifier_names, non_constant_identifier_names
+
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart' as ffi;
 
-import 'errors.dart';
-import 'types.dart';
-
-const FACILITY_WIN32 = 7;
+import 'core.dart';
 
 const int DRIVE_UNKNOWN = 0;
 const int DRIVE_NO_ROOT_DIR = 1;
@@ -25,22 +24,17 @@ late final _GetLastError = kernel32
     .lookup<NativeFunction<DWORD Function()>>('GetLastError')
     .asFunction<int Function()>();
 
-int HRESULT_FROM_WIN32(int x) =>
-    (x <= 0 ? x : (x & 0x0000FFFF | (FACILITY_WIN32 << 16) | 0x80000000))
-        .toSigned(32);
-
 List<String> GetLogicalDriveStringsW() {
   final nBufferLength0 = _GetLogicalDriveStringsW(0, nullptr);
   if (nBufferLength0 == 0) {
     return [];
   }
-  final lpBuffer = ffi.calloc.allocate<ffi.Utf16>(nBufferLength0);
+  final lpBuffer = ffi.calloc.allocate<Uint16>(nBufferLength0);
   try {
     final nBufferLength1 = _GetLogicalDriveStringsW(nBufferLength0, lpBuffer);
     if (nBufferLength1 == 0) {
       final x = GetLastError();
-      final hr = HRESULT_FROM_WIN32(x);
-      throw Win32Exception(hr);
+      throw Win32Exception(x);
     }
     return lpBuffer.toDartStringArray(nBufferLength1);
   } finally {
@@ -54,7 +48,7 @@ late final _GetLogicalDriveStringsW = kernel32
     .asFunction<int Function(int, LPWSTR)>();
 
 int GetDriveTypeW(String rootPathName) {
-  final lpRootPathName = rootPathName.toNativeUtf16();
+  final lpRootPathName = rootPathName.toNativeUint16Pointer();
   try {
     return _GetDriveTypeW(lpRootPathName);
   } finally {
