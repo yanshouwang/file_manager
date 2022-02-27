@@ -1,11 +1,9 @@
 import 'dart:io';
 
 import 'package:file_manager/models.dart';
+import 'package:file_manager/notifications/settings_notification.dart';
 import 'package:file_manager/util.dart' as util;
 import 'package:flutter/material.dart';
-import 'package:tuple/tuple.dart';
-
-typedef DirectoryAndEntities = Tuple2<Directory, List<FileSystemEntity>>;
 
 class HomeView extends StatefulWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -15,15 +13,21 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  late ValueNotifier<DirectoryAndEntities?> directoryAndEntitiesNotifier;
+  late ValueNotifier<Directory?> directoryNotifier;
+  late ValueNotifier<List<Drive>> drivesNotifier;
+  late ValueNotifier<List<FileSystemEntity>> entitiesNotifier;
   late ValueNotifier<File?> fileNotifier;
 
   @override
   void initState() {
     super.initState();
 
-    directoryAndEntitiesNotifier = ValueNotifier(null);
+    directoryNotifier = ValueNotifier(null);
+    drivesNotifier = ValueNotifier([]);
+    entitiesNotifier = ValueNotifier([]);
     fileNotifier = ValueNotifier(null);
+
+    openDrives(context);
   }
 
   @override
@@ -34,157 +38,106 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget buildBoby(BuildContext context) {
-    return ValueListenableBuilder<Tuple2<Directory, List<FileSystemEntity>>?>(
-      valueListenable: directoryAndEntitiesNotifier,
-      builder: (context, directoryAndEntities, child) {
-        if (directoryAndEntities == null) {
-          final drives = util.getDrives();
-          return buildDrives(context, drives);
-        } else {
-          return buildDirectoryAndEntities(context, directoryAndEntities);
-        }
-      },
-    );
-  }
-
-  Widget buildDrives(BuildContext context, List<Drive> drives) {
-    return Center(
-      child: ListView.separated(
-        shrinkWrap: true,
-        scrollDirection: Axis.horizontal,
-        itemCount: drives.length,
-        itemBuilder: (context, i) {
-          final drive = drives[i];
-          final String image;
-          switch (drive.type) {
-            case DriveType.fixed:
-              image = 'images/internal.png';
-              break;
-            case DriveType.cdROM:
-              image = 'images/compact.png';
-              break;
-            case DriveType.removable:
-              image = 'images/removable.png';
-              break;
-            default:
-              image = 'images/external.png';
-              break;
-          }
-          const spacing = 4.0;
-          return Center(
-            child: ClipPath(
-              clipper: const DriveClipper(radius: 12.0, spacing: spacing),
-              child: Material(
-                child: InkWell(
-                  onDoubleTap: () {
-                    final directory = Directory(drive.name);
-                    openDirectory(context, directory);
-                  },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        image,
-                        width: 100.0,
-                        height: 100.0,
-                      ),
-                      const SizedBox(height: spacing),
-                      Text(drive.name),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-        separatorBuilder: (context, i) {
-          return const SizedBox(width: 40.0);
-        },
-      ),
-    );
-  }
-
-  Widget buildDirectoryAndEntities(
-    BuildContext context,
-    DirectoryAndEntities directoryAndEntities,
-  ) {
-    final directory = directoryAndEntities.item1;
-    final entities = directoryAndEntities.item2;
-    final theme = Theme.of(context);
-    final urlController = TextEditingController(text: directory.path);
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Column(
         children: [
-          TextField(
-            controller: urlController,
-            decoration: InputDecoration(
-              icon: InkResponse(
-                onTap: () {
-                  if (directory.parent.path == directory.path) {
-                    directoryAndEntitiesNotifier.value = null;
-                  } else {
-                    openDirectory(context, directory.parent);
-                  }
-                },
-                child: const Icon(
-                  Icons.arrow_back,
-                  size: 20.0,
-                ),
-                radius: 20.0,
-              ),
-              isCollapsed: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 8.0,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: theme.colorScheme.outline,
-                ),
-                borderRadius: BorderRadius.zero,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: theme.colorScheme.primary,
-                ),
-                borderRadius: BorderRadius.zero,
-              ),
-            ),
+          ValueListenableBuilder<Directory?>(
+            valueListenable: directoryNotifier,
+            builder: (context, directory, child) {
+              final theme = Theme.of(context);
+              final url = directory?.path ?? 'My Computer';
+              final urlController = TextEditingController(text: url);
+              return Row(
+                children: [
+                  InkResponse(
+                    onTap: directory == null
+                        ? null
+                        : () {
+                            if (directory.parent.path == directory.path) {
+                              openDrives(context);
+                            } else {
+                              openDirectory(context, directory.parent);
+                            }
+                          },
+                    child: const Icon(
+                      Icons.arrow_back,
+                      size: 20.0,
+                    ),
+                    radius: 20.0,
+                  ),
+                  const SizedBox(width: 12.0),
+                  Expanded(
+                    child: TextField(
+                      controller: urlController,
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 8.0,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.outline,
+                          ),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.primary,
+                          ),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12.0),
+                  InkResponse(
+                    onTap: () {
+                      final settings = Settings.of(context);
+                      switch (settings.themeMode) {
+                        case ThemeMode.system:
+                          final value = settings.copyWith(
+                            themeMode: ThemeMode.light,
+                          );
+                          SettingsNotification(value).dispatch(context);
+                          break;
+                        case ThemeMode.light:
+                          final value = settings.copyWith(
+                            themeMode: ThemeMode.dark,
+                          );
+                          SettingsNotification(value).dispatch(context);
+                          break;
+                        case ThemeMode.dark:
+                          final value = settings.copyWith(
+                            themeMode: ThemeMode.system,
+                          );
+                          SettingsNotification(value).dispatch(context);
+                          break;
+                        default:
+                          break;
+                      }
+                    },
+                    child: const Icon(
+                      Icons.arrow_back,
+                      size: 20.0,
+                    ),
+                    radius: 20.0,
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12.0),
           Expanded(
-            child: ListView.separated(
-              itemCount: entities.length,
-              itemBuilder: (context, i) {
-                final entity = entities[i];
-                final name = entity.path.split(r'\').last;
-                final image = entity is Directory
-                    ? 'images/directory.png'
-                    : name.endsWith('.png')
-                        ? 'images/image.png'
-                        : 'images/unknown.png';
-                return InkWell(
-                  onDoubleTap: () async {
-                    if (entity is Directory) {
-                      openDirectory(context, entity);
-                    }
-                  },
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        image,
-                        width: 24.0,
-                        height: 24.0,
-                      ),
-                      const SizedBox(width: 4.0),
-                      Text(name),
-                    ],
-                  ),
-                );
-              },
-              separatorBuilder: (context, i) {
-                return const SizedBox(height: 8.0);
+            child: ValueListenableBuilder<Directory?>(
+              valueListenable: directoryNotifier,
+              builder: (context, directory, child) {
+                if (directory == null) {
+                  return buildDrives(context);
+                } else {
+                  return buildEntities(context);
+                }
               },
             ),
           ),
@@ -193,18 +146,138 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  Widget buildDrives(BuildContext context) {
+    return Center(
+      child: ValueListenableBuilder<List<Drive>>(
+        valueListenable: drivesNotifier,
+        builder: (context, drives, child) {
+          return ListView.separated(
+            shrinkWrap: true,
+            scrollDirection: Axis.horizontal,
+            itemCount: drives.length,
+            itemBuilder: (context, i) {
+              final drive = drives[i];
+              final String image;
+              switch (drive.type) {
+                case DriveType.fixed:
+                  image = 'images/internal.png';
+                  break;
+                case DriveType.cdROM:
+                  image = 'images/compact.png';
+                  break;
+                case DriveType.removable:
+                  image = 'images/removable.png';
+                  break;
+                default:
+                  image = 'images/external.png';
+                  break;
+              }
+              const spacing = 4.0;
+              return Center(
+                child: ClipPath(
+                  clipper: const DriveClipper(radius: 12.0, spacing: spacing),
+                  child: Material(
+                    child: InkWell(
+                      onDoubleTap: () {
+                        final directory = Directory(drive.name);
+                        openDirectory(context, directory);
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            image,
+                            width: 100.0,
+                            height: 100.0,
+                          ),
+                          const SizedBox(height: spacing),
+                          Text(drive.name),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+            separatorBuilder: (context, i) {
+              return const SizedBox(width: 40.0);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget buildEntities(BuildContext context) {
+    return ValueListenableBuilder<List<FileSystemEntity>>(
+      valueListenable: entitiesNotifier,
+      builder: (context, entities, child) {
+        return ListView.separated(
+          itemCount: entities.length,
+          itemBuilder: (context, i) {
+            final entity = entities[i];
+            final name = entity.path.split(r'\').last;
+            final image = entity is Directory
+                ? 'images/directory.png'
+                : name.endsWith('.png')
+                    ? 'images/image.png'
+                    : 'images/unknown.png';
+            return InkWell(
+              onDoubleTap: () async {
+                if (entity is Directory) {
+                  openDirectory(context, entity);
+                }
+              },
+              child: Row(
+                children: [
+                  Image.asset(
+                    image,
+                    width: 24.0,
+                    height: 24.0,
+                  ),
+                  const SizedBox(width: 4.0),
+                  Text(name),
+                ],
+              ),
+            );
+          },
+          separatorBuilder: (context, i) {
+            return const SizedBox(height: 8.0);
+          },
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
-    directoryAndEntitiesNotifier.dispose();
+    directoryNotifier.dispose();
+    drivesNotifier.dispose();
+    entitiesNotifier.dispose();
     fileNotifier.dispose();
     super.dispose();
   }
 
+  void openDrives(BuildContext context) async {
+    try {
+      drivesNotifier.value = util.getDrives();
+      directoryNotifier.value = null;
+    } catch (e) {
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            content: Text('$e'),
+          );
+        },
+      );
+    }
+  }
+
   void openDirectory(BuildContext context, Directory directory) async {
     try {
-      final entities = await directory.list().toList();
-      directoryAndEntitiesNotifier.value =
-          DirectoryAndEntities(directory, entities);
+      entitiesNotifier.value = await directory.list().toList();
+      directoryNotifier.value = directory;
     } catch (e) {
       await showDialog(
         context: context,

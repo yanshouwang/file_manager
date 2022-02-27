@@ -1,3 +1,5 @@
+// ignore_for_file: camel_case_types
+
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart' as ffi;
