@@ -30,7 +30,8 @@ List<String> GetLogicalDriveStringsA() {
     final statusCode = GetLastError();
     throw Win32Exception(statusCode);
   }
-  final driveNamesPointer = ffi.calloc.allocate<CHAR>(length0);
+  final byteCount = sizeOf<CHAR>() * length0;
+  final driveNamesPointer = ffi.calloc.allocate<CHAR>(byteCount);
   try {
     final length1 = _GetLogicalDriveStringsA(length0, driveNamesPointer);
     if (length1 == 0) {
@@ -54,22 +55,8 @@ List<String> GetLogicalDriveStringsW() {
     final statusCode = GetLastError();
     throw Win32Exception(statusCode);
   }
-  final driveNamesPointer = ffi.calloc.allocate<WCHAR>(length0);
-  try {
-    final length1 = _GetLogicalDriveStringsW(length0, driveNamesPointer);
-    if (length1 == 0) {
-      final statusCode = GetLastError();
-      throw Win32Exception(statusCode);
-    }
-    return driveNamesPointer.toDartStringArray(length1);
-  } finally {
-    ffi.calloc.free(driveNamesPointer);
-  }
-}
-
-List<String> GetLogicalDriveStringsW1() {
-  const length0 = 512;
-  final driveNamesPointer = ffi.calloc.allocate<WCHAR>(length0);
+  final byteCount = sizeOf<WCHAR>() * length0;
+  final driveNamesPointer = ffi.calloc.allocate<WCHAR>(byteCount);
   try {
     final length1 = _GetLogicalDriveStringsW(length0, driveNamesPointer);
     if (length1 == 0) {

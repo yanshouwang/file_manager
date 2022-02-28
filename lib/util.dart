@@ -2,7 +2,7 @@ import 'package:file_manager/models.dart';
 import 'package:file_manager/win32.dart' as win32;
 
 List<Drive> getDrives() {
-  return win32.GetLogicalDriveStringsA().map((name) {
+  return win32.GetLogicalDriveStringsW().map((name) {
     final typeNumber = win32.GetDriveTypeW(name);
     final type = DriveType.values[typeNumber];
     return Drive(name, type);
