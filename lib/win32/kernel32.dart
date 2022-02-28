@@ -14,48 +14,88 @@ const int DRIVE_REMOTE = 4;
 const int DRIVE_CDROM = 5;
 const int DRIVE_RAMDISK = 6;
 
-final kernel32 = DynamicLibrary.open('kernel32.dll');
+final _kernel32 = DynamicLibrary.open('kernel32.dll');
 
 int GetLastError() {
   return _GetLastError();
 }
 
-late final _GetLastError = kernel32
+late final _GetLastError = _kernel32
     .lookup<NativeFunction<DWORD Function()>>('GetLastError')
     .asFunction<int Function()>();
 
-List<String> GetLogicalDriveStringsW() {
-  final nBufferLength0 = _GetLogicalDriveStringsW(0, nullptr);
-  if (nBufferLength0 == 0) {
-    return [];
+List<String> GetLogicalDriveStringsA() {
+  final length0 = _GetLogicalDriveStringsA(0, nullptr);
+  if (length0 == 0) {
+    final statusCode = GetLastError();
+    throw Win32Exception(statusCode);
   }
-  final lpBuffer = ffi.calloc.allocate<Uint16>(nBufferLength0);
+  final driveNamesPointer = ffi.calloc.allocate<CHAR>(length0);
   try {
-    final nBufferLength1 = _GetLogicalDriveStringsW(nBufferLength0, lpBuffer);
-    if (nBufferLength1 == 0) {
-      final x = GetLastError();
-      throw Win32Exception(x);
+    final length1 = _GetLogicalDriveStringsA(length0, driveNamesPointer);
+    if (length1 == 0) {
+      final statusCode = GetLastError();
+      throw Win32Exception(statusCode);
     }
-    return lpBuffer.toDartStringArray(nBufferLength1);
+    return driveNamesPointer.toDartStringArray(length1);
   } finally {
-    ffi.calloc.free(lpBuffer);
+    ffi.calloc.free(driveNamesPointer);
   }
 }
 
-late final _GetLogicalDriveStringsW = kernel32
+late final _GetLogicalDriveStringsA = _kernel32
+    .lookup<NativeFunction<DWORD Function(DWORD, LPSTR)>>(
+        'GetLogicalDriveStringsA')
+    .asFunction<int Function(int, LPSTR)>();
+
+List<String> GetLogicalDriveStringsW() {
+  final length0 = _GetLogicalDriveStringsW(0, nullptr);
+  if (length0 == 0) {
+    final statusCode = GetLastError();
+    throw Win32Exception(statusCode);
+  }
+  final driveNamesPointer = ffi.calloc.allocate<WCHAR>(length0);
+  try {
+    final length1 = _GetLogicalDriveStringsW(length0, driveNamesPointer);
+    if (length1 == 0) {
+      final statusCode = GetLastError();
+      throw Win32Exception(statusCode);
+    }
+    return driveNamesPointer.toDartStringArray(length1);
+  } finally {
+    ffi.calloc.free(driveNamesPointer);
+  }
+}
+
+List<String> GetLogicalDriveStringsW1() {
+  const length0 = 512;
+  final driveNamesPointer = ffi.calloc.allocate<WCHAR>(length0);
+  try {
+    final length1 = _GetLogicalDriveStringsW(length0, driveNamesPointer);
+    if (length1 == 0) {
+      final statusCode = GetLastError();
+      throw Win32Exception(statusCode);
+    }
+    return driveNamesPointer.toDartStringArray(length1);
+  } finally {
+    ffi.calloc.free(driveNamesPointer);
+  }
+}
+
+late final _GetLogicalDriveStringsW = _kernel32
     .lookup<NativeFunction<DWORD Function(DWORD, LPWSTR)>>(
         'GetLogicalDriveStringsW')
     .asFunction<int Function(int, LPWSTR)>();
 
-int GetDriveTypeW(String rootPathName) {
-  final lpRootPathName = rootPathName.toNativeUint16Pointer();
+int GetDriveTypeW(String dirveName) {
+  final driveNamePointer = dirveName.toNativeUint16Pointer();
   try {
-    return _GetDriveTypeW(lpRootPathName);
+    return _GetDriveTypeW(driveNamePointer);
   } finally {
-    ffi.calloc.free(lpRootPathName);
+    ffi.malloc.free(driveNamePointer);
   }
 }
 
-late final _GetDriveTypeW = kernel32
+late final _GetDriveTypeW = _kernel32
     .lookup<NativeFunction<UINT Function(LPCWSTR)>>('GetDriveTypeW')
     .asFunction<int Function(LPCWSTR)>();

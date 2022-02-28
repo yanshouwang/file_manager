@@ -1,5 +1,6 @@
 // ignore_for_file: camel_case_types
 
+import 'dart:convert';
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart' as ffi;
@@ -37,14 +38,16 @@ typedef WCHAR = wchar_t;
 typedef LPWSTR = Pointer<WCHAR>;
 typedef LPCWSTR = Pointer<WCHAR>;
 
-class Win32Exception implements Exception {
-  final int hr;
+typedef LPSTR = Pointer<CHAR>;
 
-  const Win32Exception(this.hr);
+class Win32Exception implements Exception {
+  final int statusCode;
+
+  const Win32Exception(this.statusCode);
 
   @override
   String toString() {
-    return '0x${hr.toRadixString(16)}';
+    return '0x${statusCode.toRadixString(16)}';
   }
 }
 
@@ -73,7 +76,31 @@ extension Uint16PointerX on Pointer<Uint16> {
 }
 
 extension StringX on String {
-  Pointer<Uint16> toNativeUint16Pointer() {
-    return toNativeUtf16().cast();
+  Pointer<Uint16> toNativeUint16Pointer({Allocator allocator = ffi.malloc}) {
+    return toNativeUtf16(allocator: allocator).cast();
+  }
+}
+
+extension Int8PointerX on Pointer<Int8> {
+  String toDartString() {
+    return cast<ffi.Utf8>().toDartString();
+  }
+
+  List<String> toDartStringArray(int length) {
+    final codeUnits = <int>[];
+    var i = 0;
+    final items = <String>[];
+    while (i < length) {
+      final char = elementAt(i).value;
+      if (char == 0) {
+        final item = utf8.decode(codeUnits);
+        codeUnits.clear();
+        items.add(item);
+      } else {
+        codeUnits.add(char);
+      }
+      i++;
+    }
+    return items;
   }
 }
