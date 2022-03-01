@@ -79,24 +79,84 @@ List<int> removeCRs(List<int> bytes) {
 // TODO: doesn't work for now, wondering if we can use SetWindowsHookExW in flutter.
 late final win32.HHOOK _hhk;
 
-int _hookproc(int code, int wParam, int lParam) {
-  final message = Pointer.fromAddress(lParam).cast<win32.CWPSTRUCT>().ref;
+int _hookProc(int code, int wParam, int lParam) {
+  final message = WindowsMessage(code, wParam, lParam);
   _messagesController.add(message);
   final nCode = code;
   return win32.CallNextHookEx(_hhk, nCode, wParam, lParam);
 }
 
-late final _messagesController = StreamController<win32.CWPSTRUCT>.broadcast(
+int _wndProc(win32.HWND hWnd, int uMsg, int wParam, int lParam) {
+  print('_wndProc: $hWnd $uMsg $wParam $lParam}');
+  return 0;
+}
+
+class WindowsMessage {
+  final int code;
+  final int wParam;
+  final int lParam;
+
+  const WindowsMessage(this.code, this.wParam, this.lParam);
+}
+
+late final _messagesController = StreamController<WindowsMessage>.broadcast(
   onListen: () {
-    const idHook = win32.WH_KEYBOARD_LL;
-    final lpfn = Pointer.fromFunction<
-        win32.LRESULT Function(Int32, win32.WPARAM, win32.LPARAM)>(
-      _hookproc,
+    final hInstance = win32.GetModuleHandleW(nullptr);
+    const style = win32.CS_HREDRAW | win32.CS_VREDRAW;
+    final lpfnWndProc = Pointer.fromFunction<
+        win32.LRESULT Function(
+            win32.HWND, win32.UINT, win32.WPARAM, win32.LPARAM)>(
+      _wndProc,
       0,
     );
-    final hmod = win32.GetModuleHandleW(nullptr);
-    const dwThreadId = 0;
-    _hhk = win32.SetWindowsHookExW(idHook, lpfn, hmod, dwThreadId);
+    final lpszClassName = 'hook class'.toNativeUint16Pointer();
+    final lpIconName = win32.LPCWSTR.fromAddress(win32.IDI_APPLICATION);
+    final lpCursorName = win32.LPCWSTR.fromAddress(win32.IDC_ARROW);
+    final lpWndClass = ffi.calloc<win32.WNDCLASSW>()
+      ..ref.hInstance = hInstance
+      ..ref.style = style
+      ..ref.lpfnWndProc = lpfnWndProc
+      ..ref.lpszClassName = lpszClassName
+      ..ref.hIcon = win32.LoadIconW(nullptr, lpIconName)
+      ..ref.hCursor = win32.LoadCursorW(nullptr, lpCursorName)
+      ..ref.hbrBackground = win32.GetStockObject(win32.WHITE_BRUSH);
+    final lpWindowName = 'hook window'.toNativeUint16Pointer();
+    try {
+      final atom = win32.RegisterClassW(lpWndClass);
+      if (atom == 0) {
+        final statusCode = win32.GetLastError();
+        throw win32.Win32Exception(statusCode);
+      }
+      final hWnd = win32.CreateWindowW(
+        lpszClassName,
+        lpWindowName,
+        win32.WS_OVERLAPPEDWINDOW,
+        win32.CW_USEDEFAULT,
+        win32.CW_USEDEFAULT,
+        win32.CW_USEDEFAULT,
+        win32.CW_USEDEFAULT,
+        nullptr,
+        nullptr,
+        hInstance,
+        nullptr,
+      );
+      print('hWnd: $hWnd');
+      const nCmdShow = win32.SW_SHOWDEFAULT;
+      win32.ShowWindow(hWnd, nCmdShow);
+      win32.UpdateWindow(hWnd);
+      const idHook = win32.WH_KEYBOARD_LL;
+      final lpfn = Pointer.fromFunction<
+          win32.LRESULT Function(Int32, win32.WPARAM, win32.LPARAM)>(
+        _hookProc,
+        0,
+      );
+      const dwThreadId = 0;
+      _hhk = win32.SetWindowsHookExW(idHook, lpfn, nullptr, dwThreadId);
+    } finally {
+      ffi.malloc.free(lpWindowName);
+      ffi.malloc.free(lpszClassName);
+      ffi.calloc.free(lpWndClass);
+    }
   },
   onCancel: () {
     final unhoooked = win32.UnhookWindowsHookEx(_hhk);
@@ -107,4 +167,4 @@ late final _messagesController = StreamController<win32.CWPSTRUCT>.broadcast(
   },
 );
 
-Stream<win32.CWPSTRUCT> get messages => _messagesController.stream;
+Stream<WindowsMessage> get messages => _messagesController.stream;

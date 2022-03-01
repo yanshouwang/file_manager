@@ -48,40 +48,18 @@ typedef UINT_PTR = Uint64;
 typedef LRESULT = LONG_PTR;
 typedef WPARAM = UINT_PTR;
 typedef LPARAM = LONG_PTR;
-typedef HINSTANCE = Pointer<HINSTANCE__>;
+typedef HINSTANCE = HANDLE;
 typedef HMODULE = HINSTANCE;
-typedef HHOOK = Pointer<HHOOK__>;
+typedef HHOOK = HANDLE;
 typedef BOOL = Int32;
-typedef HWND = Pointer<HWND__>;
-typedef HICON = Pointer<HICON__>;
+typedef HWND = HANDLE;
+typedef HICON = HANDLE;
 typedef HCURSOR = HICON;
-typedef HBRUSH = Pointer<HBRUSH__>;
+typedef HBRUSH = HANDLE;
 typedef ATOM = WORD;
-
-class HINSTANCE__ extends Struct {
-  @Int32()
-  external int unused;
-}
-
-class HHOOK__ extends Struct {
-  @Int32()
-  external int unused;
-}
-
-class HWND__ extends Struct {
-  @Int32()
-  external int unused;
-}
-
-class HICON__ extends Struct {
-  @Int32()
-  external int unused;
-}
-
-class HBRUSH__ extends Struct {
-  @Int32()
-  external int unused;
-}
+typedef LPVOID = Pointer<Void>;
+typedef HMENU = HANDLE;
+typedef HGDIOBJ = HANDLE;
 
 class Win32Exception implements Exception {
   final int statusCode;

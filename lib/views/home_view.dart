@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_manager/models.dart';
@@ -17,6 +18,7 @@ class _HomeViewState extends State<HomeView> {
   late ValueNotifier<List<Drive>> drivesNotifier;
   late ValueNotifier<List<FileSystemEntity>> entitiesNotifier;
   late ValueNotifier<File?> fileNotifier;
+  late StreamSubscription<util.WindowsMessage> messagesSubscription;
 
   @override
   void initState() {
@@ -27,7 +29,13 @@ class _HomeViewState extends State<HomeView> {
     entitiesNotifier = ValueNotifier([]);
     fileNotifier = ValueNotifier(null);
 
+    messagesSubscription = util.messages.listen(onMessage);
+
     openDrives(context);
+  }
+
+  void onMessage(util.WindowsMessage message) {
+    print('onMessage: ${message.code} ${message.wParam} ${message.lParam}');
   }
 
   @override
@@ -251,6 +259,8 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   void dispose() {
+    messagesSubscription.cancel();
+
     directoryNotifier.dispose();
     drivesNotifier.dispose();
     entitiesNotifier.dispose();
