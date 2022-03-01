@@ -37,8 +37,51 @@ typedef wchar_t = Uint16;
 typedef WCHAR = wchar_t;
 typedef LPWSTR = Pointer<WCHAR>;
 typedef LPCWSTR = Pointer<WCHAR>;
-
 typedef LPSTR = Pointer<CHAR>;
+typedef HANDLE = Pointer<Void>;
+
+// basetsd.h
+typedef LONG_PTR = Int64;
+typedef UINT_PTR = Uint64;
+
+// windef.h
+typedef LRESULT = LONG_PTR;
+typedef WPARAM = UINT_PTR;
+typedef LPARAM = LONG_PTR;
+typedef HINSTANCE = Pointer<HINSTANCE__>;
+typedef HMODULE = HINSTANCE;
+typedef HHOOK = Pointer<HHOOK__>;
+typedef BOOL = Int32;
+typedef HWND = Pointer<HWND__>;
+typedef HICON = Pointer<HICON__>;
+typedef HCURSOR = HICON;
+typedef HBRUSH = Pointer<HBRUSH__>;
+typedef ATOM = WORD;
+
+class HINSTANCE__ extends Struct {
+  @Int32()
+  external int unused;
+}
+
+class HHOOK__ extends Struct {
+  @Int32()
+  external int unused;
+}
+
+class HWND__ extends Struct {
+  @Int32()
+  external int unused;
+}
+
+class HICON__ extends Struct {
+  @Int32()
+  external int unused;
+}
+
+class HBRUSH__ extends Struct {
+  @Int32()
+  external int unused;
+}
 
 class Win32Exception implements Exception {
   final int statusCode;
