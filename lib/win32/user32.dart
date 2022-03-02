@@ -138,12 +138,217 @@ const IDC_HELP = 32651;
 const IDC_PIN = 32671;
 const IDC_PERSON = 32672;
 
+const HWND_MESSAGE = -3;
+
+const DEVICE_NOTIFY_WINDOW_HANDLE = 0;
+const DEVICE_NOTIFY_SERVICE_HANDLE = 1;
+const DEVICE_NOTIFY_ALL_INTERFACE_CLASSES = 4;
+
+const WM_NULL = 0;
+const WM_CREATE = 1;
+const WM_DESTROY = 2;
+const WM_MOVE = 3;
+const WM_SIZE = 5;
+const WM_ACTIVATE = 6;
+const WA_INACTIVE = 0;
+const WA_ACTIVE = 1;
+const WA_CLICKACTIVE = 2;
+const WM_SETFOCUS = 7;
+const WM_KILLFOCUS = 8;
+const WM_ENABLE = 10;
+const WM_SETREDRAW = 11;
+const WM_SETTEXT = 12;
+const WM_GETTEXT = 13;
+const WM_GETTEXTLENGTH = 14;
+const WM_PAINT = 15;
+const WM_CLOSE = 16;
+const WM_QUERYENDSESSION = 17;
+const WM_QUERYOPEN = 19;
+const WM_ENDSESSION = 22;
+const WM_QUIT = 18;
+const WM_ERASEBKGND = 20;
+const WM_SYSCOLORCHANGE = 21;
+const WM_SHOWWINDOW = 24;
+const WM_WININICHANGE = 26;
+const WM_SETTINGCHANGE = 26;
+const WM_DEVMODECHANGE = 27;
+const WM_ACTIVATEAPP = 28;
+const WM_FONTCHANGE = 29;
+const WM_TIMECHANGE = 30;
+const WM_CANCELMODE = 31;
+const WM_SETCURSOR = 32;
+const WM_MOUSEACTIVATE = 33;
+const WM_CHILDACTIVATE = 34;
+const WM_QUEUESYNC = 35;
+const WM_GETMINMAXINFO = 36;
+const WM_PAINTICON = 38;
+const WM_ICONERASEBKGND = 39;
+const WM_NEXTDLGCTL = 40;
+const WM_SPOOLERSTATUS = 42;
+const WM_DRAWITEM = 43;
+const WM_MEASUREITEM = 44;
+const WM_DELETEITEM = 45;
+const WM_VKEYTOITEM = 46;
+const WM_CHARTOITEM = 47;
+const WM_SETFONT = 48;
+const WM_GETFONT = 49;
+const WM_SETHOTKEY = 50;
+const WM_GETHOTKEY = 51;
+const WM_QUERYDRAGICON = 55;
+const WM_COMPAREITEM = 57;
+const WM_GETOBJECT = 61;
+const WM_COMPACTING = 65;
+const WM_COMMNOTIFY = 68;
+const WM_WINDOWPOSCHANGING = 70;
+const WM_WINDOWPOSCHANGED = 71;
+const WM_POWER = 72;
+const WM_DEVICECHANGE = 537;
+const WM_MDICREATE = 544;
+const WM_MDIDESTROY = 545;
+const WM_MDIACTIVATE = 546;
+const WM_MDIRESTORE = 547;
+const WM_MDINEXT = 548;
+const WM_MDIMAXIMIZE = 549;
+const WM_MDITILE = 550;
+const WM_MDICASCADE = 551;
+const WM_MDIICONARRANGE = 552;
+const WM_MDIGETACTIVE = 553;
+const WM_MDISETMENU = 560;
+const WM_ENTERSIZEMOVE = 561;
+const WM_EXITSIZEMOVE = 562;
+const WM_DROPFILES = 563;
+const WM_MDIREFRESHMENU = 564;
+const WM_POINTERDEVICECHANGE = 568;
+const WM_POINTERDEVICEINRANGE = 569;
+const WM_POINTERDEVICEOUTOFRANGE = 570;
+const WM_TOUCH = 576;
+const WM_NCPOINTERUPDATE = 577;
+const WM_NCPOINTERDOWN = 578;
+const WM_NCPOINTERUP = 579;
+const WM_POINTERUPDATE = 581;
+const WM_POINTERDOWN = 582;
+const WM_POINTERUP = 583;
+const WM_POINTERENTER = 585;
+const WM_POINTERLEAVE = 586;
+const WM_POINTERACTIVATE = 587;
+const WM_POINTERCAPTURECHANGED = 588;
+const WM_TOUCHHITTESTING = 589;
+const WM_POINTERWHEEL = 590;
+const WM_POINTERHWHEEL = 591;
+const DM_POINTERHITTEST = 592;
+const WM_POINTERROUTEDTO = 593;
+const WM_POINTERROUTEDAWAY = 594;
+const WM_POINTERROUTEDRELEASED = 595;
+const WM_IME_SETCONTEXT = 641;
+const WM_IME_NOTIFY = 642;
+const WM_IME_CONTROL = 643;
+const WM_IME_COMPOSITIONFULL = 644;
+const WM_IME_SELECT = 645;
+const WM_IME_CHAR = 646;
+const WM_IME_REQUEST = 648;
+const WM_IME_KEYDOWN = 656;
+const WM_IME_KEYUP = 657;
+const WM_MOUSEHOVER = 673;
+const WM_MOUSELEAVE = 675;
+const WM_NCMOUSEHOVER = 672;
+const WM_NCMOUSELEAVE = 674;
+const WM_WTSSESSION_CHANGE = 689;
+const WM_TABLET_FIRST = 704;
+const WM_TABLET_LAST = 735;
+const WM_DPICHANGED = 736;
+const WM_DPICHANGED_BEFOREPARENT = 738;
+const WM_DPICHANGED_AFTERPARENT = 739;
+const WM_GETDPISCALEDSIZE = 740;
+const WM_CUT = 768;
+const WM_COPY = 769;
+const WM_PASTE = 770;
+const WM_CLEAR = 771;
+const WM_UNDO = 772;
+const WM_RENDERFORMAT = 773;
+const WM_RENDERALLFORMATS = 774;
+const WM_DESTROYCLIPBOARD = 775;
+const WM_DRAWCLIPBOARD = 776;
+const WM_PAINTCLIPBOARD = 777;
+const WM_VSCROLLCLIPBOARD = 778;
+const WM_SIZECLIPBOARD = 779;
+const WM_ASKCBFORMATNAME = 780;
+const WM_CHANGECBCHAIN = 781;
+const WM_HSCROLLCLIPBOARD = 782;
+const WM_QUERYNEWPALETTE = 783;
+const WM_PALETTEISCHANGING = 784;
+const WM_PALETTECHANGED = 785;
+const WM_HOTKEY = 786;
+const WM_PRINT = 791;
+const WM_PRINTCLIENT = 792;
+const WM_APPCOMMAND = 793;
+const WM_THEMECHANGED = 794;
+const WM_CLIPBOARDUPDATE = 797;
+const WM_DWMCOMPOSITIONCHANGED = 798;
+const WM_DWMNCRENDERINGCHANGED = 799;
+const WM_DWMCOLORIZATIONCOLORCHANGED = 800;
+const WM_DWMWINDOWMAXIMIZEDCHANGE = 801;
+const WM_DWMSENDICONICTHUMBNAIL = 803;
+const WM_DWMSENDICONICLIVEPREVIEWBITMAP = 806;
+const WM_GETTITLEBARINFOEX = 831;
+const WM_HANDHELDFIRST = 856;
+const WM_HANDHELDLAST = 863;
+const WM_AFXFIRST = 864;
+const WM_AFXLAST = 895;
+const WM_PENWINFIRST = 896;
+const WM_PENWINLAST = 911;
+const WM_APP = 32768;
+const WM_USER = 1024;
+
+const WMSZ_LEFT = 1;
+const WMSZ_RIGHT = 2;
+const WMSZ_TOP = 3;
+const WMSZ_TOPLEFT = 4;
+const WMSZ_TOPRIGHT = 5;
+const WMSZ_BOTTOM = 6;
+const WMSZ_BOTTOMLEFT = 7;
+const WMSZ_BOTTOMRIGHT = 8;
+
+const int DBT_APPYBEGIN = 0;
+
+const DBT_APPYEND = 1;
+const DBT_DEVNODES_CHANGED = 7;
+const DBT_QUERYCHANGECONFIG = 23;
+const DBT_CONFIGCHANGED = 24;
+const DBT_CONFIGCHANGECANCELED = 25;
+const DBT_MONITORCHANGE = 27;
+const DBT_SHELLLOGGEDON = 32;
+const DBT_CONFIGMGAPI32 = 34;
+const DBT_VXDINITCOMPLETE = 35;
+const DBT_VOLLOCKQUERYLOCK = 32833;
+const DBT_VOLLOCKLOCKTAKEN = 32834;
+const DBT_VOLLOCKLOCKFAILED = 32835;
+const DBT_VOLLOCKQUERYUNLOCK = 32836;
+const DBT_VOLLOCKLOCKRELEASED = 32837;
+const DBT_VOLLOCKUNLOCKFAILED = 32838;
+const DBT_NO_DISK_SPACE = 71;
+const DBT_LOW_DISK_SPACE = 72;
+const DBT_CONFIGMGPRIVATE = 32767;
+const DBT_DEVICEARRIVAL = 32768;
+const DBT_DEVICEQUERYREMOVE = 32769;
+const DBT_DEVICEQUERYREMOVEFAILED = 32770;
+const DBT_DEVICEREMOVEPENDING = 32771;
+const DBT_DEVICEREMOVECOMPLETE = 32772;
+const DBT_DEVICETYPESPECIFIC = 32773;
+const DBT_DEVTYP_OEM = 0;
+const DBT_DEVTYP_DEVNODE = 1;
+const DBT_DEVTYP_VOLUME = 2;
+const DBT_DEVTYP_PORT = 3;
+const DBT_DEVTYP_NET = 4;
+
 typedef HOOKPROC
     = Pointer<NativeFunction<LRESULT Function(Int32, WPARAM, LPARAM)>>;
 typedef CWPSTRUCT = tagCWPSTRUCT;
 typedef WNDCLASSW = tagWNDCLASSW;
 typedef WNDPROC
     = Pointer<NativeFunction<LRESULT Function(HWND, UINT, WPARAM, LPARAM)>>;
+typedef LPMSG = Pointer<MSG>;
+typedef MSG = tagMSG;
+typedef HDEVNOTIFY = PVOID;
 
 class tagCWPSTRUCT extends Struct {
   @LPARAM()
@@ -169,6 +374,19 @@ class tagWNDCLASSW extends Struct {
   external HBRUSH hbrBackground;
   external LPCWSTR lpszMenuName;
   external LPCWSTR lpszClassName;
+}
+
+class tagMSG extends Struct {
+  external HWND hwnd;
+  @UINT()
+  external int message;
+  @WPARAM()
+  external int wParam;
+  @LPARAM()
+  external int lParam;
+  @DWORD()
+  external int time;
+  external POINT pt;
 }
 
 HHOOK SetWindowsHookExW(
@@ -317,3 +535,59 @@ HCURSOR LoadCursorW(HINSTANCE hInstance, LPCWSTR lpCursorName) {
 late final _LoadCursorW = _user32
     .lookup<NativeFunction<HCURSOR Function(HINSTANCE, LPCWSTR)>>('LoadCursorW')
     .asFunction<HCURSOR Function(HINSTANCE, LPCWSTR)>();
+
+int DefWindowProcW(HWND hWnd, int Msg, int wParam, int lParam) {
+  return _DefWindowProcW(hWnd, Msg, wParam, lParam);
+}
+
+late final _DefWindowProcW = _user32
+    .lookup<NativeFunction<LRESULT Function(HWND, UINT, WPARAM, LPARAM)>>(
+        'DefWindowProcW')
+    .asFunction<int Function(HWND, int, int, int)>();
+
+int GetMessageW(LPMSG lpMsg, HWND hWnd, int wMsgFilterMin, int wMsgFilterMax) {
+  return _GetMessageW(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
+}
+
+late final _GetMessageW = _user32
+    .lookup<NativeFunction<BOOL Function(LPMSG, HWND, UINT, UINT)>>(
+        'GetMessageW')
+    .asFunction<int Function(LPMSG, HWND, int, int)>();
+
+int TranslateMessage(Pointer<MSG> lpMsg) {
+  return _TranslateMessage(lpMsg);
+}
+
+late final _TranslateMessage = _user32
+    .lookup<NativeFunction<BOOL Function(Pointer<MSG>)>>('TranslateMessage')
+    .asFunction<int Function(Pointer<MSG>)>();
+
+int DispatchMessageW(Pointer<MSG> lpMsg) {
+  return _DispatchMessageW(lpMsg);
+}
+
+late final _DispatchMessageW = _user32
+    .lookup<NativeFunction<LRESULT Function(Pointer<MSG>)>>('DispatchMessageW')
+    .asFunction<int Function(Pointer<MSG>)>();
+
+HDEVNOTIFY RegisterDeviceNotificationW(
+  HANDLE hRecipient,
+  LPVOID NotificationFilter,
+  int Flags,
+) {
+  return _RegisterDeviceNotificationW(hRecipient, NotificationFilter, Flags);
+}
+
+late final _RegisterDeviceNotificationW = _user32
+    .lookup<NativeFunction<HDEVNOTIFY Function(HANDLE, LPVOID, DWORD)>>(
+        'RegisterDeviceNotificationW')
+    .asFunction<HDEVNOTIFY Function(HANDLE, LPVOID, int)>();
+
+int UnregisterDeviceNotification(HDEVNOTIFY Handle) {
+  return _UnregisterDeviceNotification(Handle);
+}
+
+late final _UnregisterDeviceNotification = _user32
+    .lookup<NativeFunction<BOOL Function(HDEVNOTIFY)>>(
+        'UnregisterDeviceNotification')
+    .asFunction<int Function(HDEVNOTIFY)>();

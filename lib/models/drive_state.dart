@@ -1,0 +1,4 @@
+enum DriveState {
+  added,
+  removed,
+}

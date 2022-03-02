@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:file_manager/models.dart';
 import 'package:file_manager/notifications.dart';
+import 'package:file_manager/util.dart' as util;
 import 'package:file_manager/views.dart';
 import 'package:file_manager/widgets.dart';
 import 'package:flutter/gestures.dart';
@@ -15,6 +16,7 @@ void main() {
 void onStarted() {
   const app = MyApp();
   runApp(app);
+  util.runMessagesIsolate();
 }
 
 void onCrashed(Object error, StackTrace stack) {

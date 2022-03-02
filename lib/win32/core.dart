@@ -1,4 +1,4 @@
-// ignore_for_file: camel_case_types
+// ignore_for_file: camel_case_types, non_constant_identifier_names, constant_identifier_names
 
 import 'dart:convert';
 import 'dart:ffi';
@@ -39,6 +39,7 @@ typedef LPWSTR = Pointer<WCHAR>;
 typedef LPCWSTR = Pointer<WCHAR>;
 typedef LPSTR = Pointer<CHAR>;
 typedef HANDLE = Pointer<Void>;
+typedef PVOID = Pointer<Void>;
 
 // basetsd.h
 typedef LONG_PTR = Int64;
@@ -60,6 +61,55 @@ typedef ATOM = WORD;
 typedef LPVOID = Pointer<Void>;
 typedef HMENU = HANDLE;
 typedef HGDIOBJ = HANDLE;
+typedef POINT = tagPOINT;
+
+class tagPOINT extends Struct {
+  @LONG()
+  external int x;
+  @LONG()
+  external int y;
+}
+
+// dbt.h
+const DBT_DEVTYP_DEVICEINTERFACE = 0x00000005;
+const DBT_DEVTYP_HANDLE = 0x00000006;
+
+typedef DEV_BROADCAST_DEVICEINTERFACE_W = _DEV_BROADCAST_DEVICEINTERFACE_W;
+
+class _DEV_BROADCAST_DEVICEINTERFACE_W extends Struct {
+  @DWORD()
+  external int dbcc_size;
+  @DWORD()
+  external int dbcc_devicetype;
+  @DWORD()
+  external int dbcc_reserved;
+  external GUID dbcc_classguid;
+  @Array(1)
+  external Array<wchar_t> dbcc_name;
+}
+
+// guiddef.h
+typedef GUID = _GUID;
+
+class _GUID extends Struct {
+  @Uint32()
+  external int Data1;
+  @Uint16()
+  external int Data2;
+  @Uint16()
+  external int Data3;
+  @Array(8)
+  external Array<Uint8> Data4;
+
+  void setValue(int data1, int data2, int data3, List<int> data4) {
+    Data1 = data1;
+    Data2 = data2;
+    Data3 = data3;
+    for (var i = 0; i < 8; i++) {
+      Data4[i] = data4[i];
+    }
+  }
+}
 
 class Win32Exception implements Exception {
   final int statusCode;

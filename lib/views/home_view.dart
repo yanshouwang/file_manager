@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:file_manager/models.dart';
@@ -18,7 +19,9 @@ class _HomeViewState extends State<HomeView> {
   late ValueNotifier<List<Drive>> drivesNotifier;
   late ValueNotifier<List<FileSystemEntity>> entitiesNotifier;
   late ValueNotifier<File?> fileNotifier;
-  late StreamSubscription<util.WindowsMessage> messagesSubscription;
+  late StreamSubscription<DriveState> driveSubscription;
+
+  StreamSubscription<FileSystemEvent>? directorySubscription;
 
   @override
   void initState() {
@@ -29,13 +32,24 @@ class _HomeViewState extends State<HomeView> {
     entitiesNotifier = ValueNotifier([]);
     fileNotifier = ValueNotifier(null);
 
-    messagesSubscription = util.messages.listen(onMessage);
+    driveSubscription = util.driveStateChanged.listen(onDriveStateChanged);
 
     openDrives(context);
   }
 
-  void onMessage(util.WindowsMessage message) {
-    print('onMessage: ${message.code} ${message.wParam} ${message.lParam}');
+  void onDriveStateChanged(DriveState state) {
+    try {
+      final drivers = util.getDrives();
+      final directory = directoryNotifier.value;
+      if (state == DriveState.removed &&
+          directory != null &&
+          drivers.every((drive) => !directory.path.startsWith(drive.name))) {
+        directoryNotifier.value = null;
+      }
+      drivesNotifier.value = drivers;
+    } catch (e) {
+      log('Get drives failed: $e');
+    }
   }
 
   @override
@@ -259,7 +273,8 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   void dispose() {
-    messagesSubscription.cancel();
+    driveSubscription.cancel();
+    directorySubscription?.cancel();
 
     directoryNotifier.dispose();
     drivesNotifier.dispose();
@@ -288,6 +303,9 @@ class _HomeViewState extends State<HomeView> {
     try {
       entitiesNotifier.value = await directory.list().toList();
       directoryNotifier.value = directory;
+
+      await directorySubscription?.cancel();
+      directorySubscription = directory.watch().listen(onDirectoryChanged);
     } catch (e) {
       await showDialog(
         context: context,
@@ -297,6 +315,13 @@ class _HomeViewState extends State<HomeView> {
           );
         },
       );
+    }
+  }
+
+  void onDirectoryChanged(FileSystemEvent event) async {
+    final directory = directoryNotifier.value;
+    if (directory != null) {
+      entitiesNotifier.value = await directory.list().toList();
     }
   }
 
@@ -328,6 +353,7 @@ class _HomeViewState extends State<HomeView> {
   //     ),
   //   );
   // }
+
 }
 
 class DriveClipper extends CustomClipper<Path> {
