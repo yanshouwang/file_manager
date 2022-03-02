@@ -16,7 +16,7 @@ void main() {
 void onStarted() {
   const app = MyApp();
   runApp(app);
-  util.runMessagesIsolate();
+  // util.runMessagesIsolate();
 }
 
 void onCrashed(Object error, StackTrace stack) {

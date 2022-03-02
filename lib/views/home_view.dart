@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:file_manager/models.dart';
-import 'package:file_manager/notifications/settings_notification.dart';
+import 'package:file_manager/notifications.dart';
 import 'package:file_manager/util.dart' as util;
+import 'package:file_manager/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -15,11 +18,17 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+  final key = GlobalKey();
+  final changeKey = GlobalKey();
+
   late ValueNotifier<Directory?> directoryNotifier;
   late ValueNotifier<List<Drive>> drivesNotifier;
   late ValueNotifier<List<FileSystemEntity>> entitiesNotifier;
   late ValueNotifier<File?> fileNotifier;
   late StreamSubscription<DriveState> driveSubscription;
+
+  late ValueNotifier<ui.Image?> screenshotNotifier;
+  late ui.Offset offset;
 
   StreamSubscription<FileSystemEvent>? directorySubscription;
 
@@ -32,30 +41,51 @@ class _HomeViewState extends State<HomeView> {
     entitiesNotifier = ValueNotifier([]);
     fileNotifier = ValueNotifier(null);
 
-    driveSubscription = util.driveStateChanged.listen(onDriveStateChanged);
+    screenshotNotifier = ValueNotifier(null);
 
     openDrives(context);
-  }
 
-  void onDriveStateChanged(DriveState state) {
-    try {
-      final drivers = util.getDrives();
-      final directory = directoryNotifier.value;
-      if (state == DriveState.removed &&
-          directory != null &&
-          drivers.every((drive) => !directory.path.startsWith(drive.name))) {
-        directoryNotifier.value = null;
+    driveSubscription = util.driveStateChanged.listen((state) {
+      try {
+        final drivers = util.getDrives();
+        final directory = directoryNotifier.value;
+        if (state == DriveState.removed &&
+            directory != null &&
+            drivers.every((drive) => !directory.path.startsWith(drive.name))) {
+          directoryNotifier.value = null;
+        }
+        drivesNotifier.value = drivers;
+      } catch (e) {
+        log('Get drives failed: $e');
       }
-      drivesNotifier.value = drivers;
-    } catch (e) {
-      log('Get drives failed: $e');
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: buildBoby(context),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        RepaintBoundary(
+          key: key,
+          child: Scaffold(
+            body: buildBoby(context),
+          ),
+        ),
+        ValueListenableBuilder<ui.Image?>(
+          valueListenable: screenshotNotifier,
+          builder: (context, screenshot, child) {
+            if (screenshot == null) {
+              return Container();
+            } else {
+              return ClipImage(
+                image: screenshot,
+                offset: offset,
+              );
+            }
+          },
+        ),
+      ],
     );
   }
 
@@ -64,92 +94,7 @@ class _HomeViewState extends State<HomeView> {
       padding: const EdgeInsets.all(12.0),
       child: Column(
         children: [
-          ValueListenableBuilder<Directory?>(
-            valueListenable: directoryNotifier,
-            builder: (context, directory, child) {
-              final theme = Theme.of(context);
-              final url = directory?.path ?? 'My Computer';
-              final urlController = TextEditingController(text: url);
-              return Row(
-                children: [
-                  InkResponse(
-                    onTap: directory == null
-                        ? null
-                        : () {
-                            if (directory.parent.path == directory.path) {
-                              openDrives(context);
-                            } else {
-                              openDirectory(context, directory.parent);
-                            }
-                          },
-                    child: const Icon(
-                      Icons.arrow_back,
-                      size: 20.0,
-                    ),
-                    radius: 20.0,
-                  ),
-                  const SizedBox(width: 12.0),
-                  Expanded(
-                    child: TextField(
-                      controller: urlController,
-                      decoration: InputDecoration(
-                        isCollapsed: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12.0,
-                          vertical: 8.0,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.outline,
-                          ),
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.primary,
-                          ),
-                          borderRadius: BorderRadius.zero,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12.0),
-                  InkResponse(
-                    onTap: () {
-                      final settings = Settings.of(context);
-                      switch (settings.themeMode) {
-                        case ThemeMode.system:
-                          final value = settings.copyWith(
-                            themeMode: ThemeMode.light,
-                          );
-                          SettingsNotification(value).dispatch(context);
-                          break;
-                        case ThemeMode.light:
-                          final value = settings.copyWith(
-                            themeMode: ThemeMode.dark,
-                          );
-                          SettingsNotification(value).dispatch(context);
-                          break;
-                        case ThemeMode.dark:
-                          final value = settings.copyWith(
-                            themeMode: ThemeMode.system,
-                          );
-                          SettingsNotification(value).dispatch(context);
-                          break;
-                        default:
-                          break;
-                      }
-                    },
-                    child: const Icon(
-                      Icons.change_circle,
-                      size: 20.0,
-                    ),
-                    radius: 20.0,
-                  ),
-                ],
-              );
-            },
-          ),
+          buildToolbar(context),
           const SizedBox(height: 12.0),
           Expanded(
             child: ValueListenableBuilder<Directory?>(
@@ -165,6 +110,66 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget buildToolbar(BuildContext context) {
+    return ValueListenableBuilder<Directory?>(
+      valueListenable: directoryNotifier,
+      builder: (context, directory, child) {
+        final theme = Theme.of(context);
+        final url = directory?.path ?? 'My Computer';
+        final urlController = TextEditingController(text: url);
+        return Row(
+          children: [
+            InkResponse(
+              onTap: directory == null
+                  ? null
+                  : () => openParentDirectory(context, directory),
+              child: const Icon(
+                Icons.arrow_back,
+                size: 20.0,
+              ),
+              radius: 20.0,
+            ),
+            const SizedBox(width: 12.0),
+            Expanded(
+              child: TextField(
+                controller: urlController,
+                decoration: InputDecoration(
+                  isCollapsed: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12.0,
+                    vertical: 8.0,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.outline,
+                    ),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.primary,
+                    ),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12.0),
+            InkResponse(
+              onTap: () => changeThemeMode(context),
+              child: Icon(
+                Icons.change_circle,
+                key: changeKey,
+                size: 20.0,
+              ),
+              radius: 20.0,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -301,11 +306,18 @@ class _HomeViewState extends State<HomeView> {
 
   void openDirectory(BuildContext context, Directory directory) async {
     try {
+      await directorySubscription?.cancel();
+
       entitiesNotifier.value = await directory.list().toList();
       directoryNotifier.value = directory;
 
-      await directorySubscription?.cancel();
-      directorySubscription = directory.watch().listen(onDirectoryChanged);
+      directorySubscription = directory.watch().listen((event) async {
+        try {
+          entitiesNotifier.value = await directory.list().toList();
+        } catch (e) {
+          log('Get entities failed: $e');
+        }
+      });
     } catch (e) {
       await showDialog(
         context: context,
@@ -318,10 +330,53 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  void onDirectoryChanged(FileSystemEvent event) async {
-    final directory = directoryNotifier.value;
-    if (directory != null) {
-      entitiesNotifier.value = await directory.list().toList();
+  void openParentDirectory(BuildContext context, Directory directory) {
+    if (directory.parent.path == directory.path) {
+      openDrives(context);
+    } else {
+      openDirectory(context, directory.parent);
+    }
+  }
+
+  void changeThemeMode(BuildContext context) {
+    startAnimation(context);
+    final settings = Settings.of(context);
+    switch (settings.themeMode) {
+      case ThemeMode.system:
+        final value = settings.copyWith(
+          themeMode: ThemeMode.light,
+        );
+        SettingsNotification(value).dispatch(context);
+        break;
+      case ThemeMode.light:
+        final value = settings.copyWith(
+          themeMode: ThemeMode.dark,
+        );
+        SettingsNotification(value).dispatch(context);
+        break;
+      case ThemeMode.dark:
+        final value = settings.copyWith(
+          themeMode: ThemeMode.system,
+        );
+        SettingsNotification(value).dispatch(context);
+        break;
+      default:
+        break;
+    }
+  }
+
+  void startAnimation(BuildContext context) async {
+    final renderObject = key.currentContext?.findRenderObject();
+    if (renderObject is RenderRepaintBoundary) {
+      final renderBox = changeKey.currentContext?.findRenderObject();
+      if (renderBox is RenderBox) {
+        final center = (Offset.zero & renderBox.size).center;
+        offset = renderBox.localToGlobal(center, ancestor: renderObject);
+      }
+      final mediaQuery = MediaQuery.of(context);
+      screenshotNotifier.value = await renderObject.toImage(
+        pixelRatio: mediaQuery.devicePixelRatio,
+      );
     }
   }
 
