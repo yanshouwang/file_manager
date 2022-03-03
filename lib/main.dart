@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'dart:developer' as developer;
 
 import 'package:file_manager/models.dart';
 import 'package:file_manager/notifications.dart';
@@ -8,6 +8,7 @@ import 'package:file_manager/views.dart';
 import 'package:file_manager/widgets.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:window_size/window_size.dart' as window_size;
 
 void main() {
   runZonedGuarded(onStarted, onCrashed);
@@ -16,11 +17,19 @@ void main() {
 void onStarted() {
   const app = MyApp();
   runApp(app);
+  fixWindow();
+}
+
+void fixWindow() async {
+  window_size.setWindowTitle('This PC');
+  const size = Size(800, 600);
+  window_size.setWindowMinSize(size);
+
   util.runMessagesIsolate();
 }
 
 void onCrashed(Object error, StackTrace stack) {
-  log('Crashed: $error\n$stack');
+  developer.log('Crashed: $error\n$stack');
 }
 
 class MyApp extends StatefulWidget {
