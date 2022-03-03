@@ -16,7 +16,7 @@ void main() {
 void onStarted() {
   const app = MyApp();
   runApp(app);
-  // util.runMessagesIsolate();
+  util.runMessagesIsolate();
 }
 
 void onCrashed(Object error, StackTrace stack) {
@@ -62,12 +62,12 @@ class _MyAppState extends State<MyApp> {
                 // Notice that the counter didn't reset back to zero; the application
                 // is not restarted.
                 brightness: Brightness.light,
-                primarySwatch: Colors.amber,
+                primarySwatch: Colors.green,
                 platform: TargetPlatform.macOS,
               ),
               darkTheme: ThemeData(
                 brightness: Brightness.dark,
-                primarySwatch: Colors.amber,
+                primarySwatch: Colors.green,
                 platform: TargetPlatform.macOS,
               ),
               scrollBehavior: const MaterialScrollBehavior().copyWith(

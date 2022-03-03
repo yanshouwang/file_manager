@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:file_manager/models.dart';
@@ -9,6 +11,9 @@ import 'package:file_manager/util.dart' as util;
 import 'package:file_manager/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:tuple/tuple.dart';
+
+typedef ClipArguments = Tuple3<ui.Image, ui.Offset, ui.Size>;
 
 class HomeView extends StatefulWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -17,18 +22,19 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> {
+class _HomeViewState extends State<HomeView>
+    with SingleTickerProviderStateMixin {
   final key = GlobalKey();
-  final changeKey = GlobalKey();
+  final keys = {for (var themeMode in ThemeMode.values) themeMode: GlobalKey()};
 
   late ValueNotifier<Directory?> directoryNotifier;
   late ValueNotifier<List<Drive>> drivesNotifier;
   late ValueNotifier<List<FileSystemEntity>> entitiesNotifier;
-  late ValueNotifier<File?> fileNotifier;
+  late ValueNotifier<Uint8List?> memoryNotifier;
   late StreamSubscription<DriveState> driveSubscription;
+  late ValueNotifier<ClipArguments?> clipArgumentsNotifier;
 
-  late ValueNotifier<ui.Image?> screenshotNotifier;
-  late ui.Offset offset;
+  late AnimationController themeController;
 
   StreamSubscription<FileSystemEvent>? directorySubscription;
 
@@ -39,9 +45,13 @@ class _HomeViewState extends State<HomeView> {
     directoryNotifier = ValueNotifier(null);
     drivesNotifier = ValueNotifier([]);
     entitiesNotifier = ValueNotifier([]);
-    fileNotifier = ValueNotifier(null);
+    memoryNotifier = ValueNotifier(null);
+    clipArgumentsNotifier = ValueNotifier(null);
 
-    screenshotNotifier = ValueNotifier(null);
+    themeController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
 
     openDrives(context);
 
@@ -63,29 +73,48 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        RepaintBoundary(
-          key: key,
-          child: Scaffold(
+    return RepaintBoundary(
+      key: key,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Scaffold(
             body: buildBoby(context),
           ),
-        ),
-        ValueListenableBuilder<ui.Image?>(
-          valueListenable: screenshotNotifier,
-          builder: (context, screenshot, child) {
-            if (screenshot == null) {
-              return Container();
-            } else {
-              return ClipImage(
-                image: screenshot,
-                offset: offset,
-              );
-            }
-          },
-        ),
-      ],
+          ValueListenableBuilder<ClipArguments?>(
+            valueListenable: clipArgumentsNotifier,
+            builder: (context, clipArguments, child) {
+              if (clipArguments == null) {
+                return Container();
+              } else {
+                final image = clipArguments.item1;
+                final offset = clipArguments.item2;
+                final size = clipArguments.item3;
+                final bounds = Offset.zero & size;
+                final d0 = (offset - bounds.topLeft).distance;
+                final d1 = (offset - bounds.topRight).distance;
+                final d2 = (offset - bounds.bottomRight).distance;
+                final d3 = (offset - bounds.bottomLeft).distance;
+                final distance = [d0, d1, d2, d3].reduce(math.max);
+                final animation = CurvedAnimation(
+                  parent: themeController,
+                  curve: Curves.easeInOut,
+                );
+                return AnimatedBuilder(
+                  animation: animation,
+                  builder: (context, child) {
+                    return ClipImage(
+                      image: image,
+                      offset: offset,
+                      radius: distance * animation.value,
+                    );
+                  },
+                );
+              }
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -117,57 +146,78 @@ class _HomeViewState extends State<HomeView> {
     return ValueListenableBuilder<Directory?>(
       valueListenable: directoryNotifier,
       builder: (context, directory, child) {
+        final settings = Settings.of(context);
         final theme = Theme.of(context);
-        final url = directory?.path ?? 'My Computer';
+        final url = directory?.path ?? 'This PC';
         final urlController = TextEditingController(text: url);
-        return Row(
-          children: [
-            InkResponse(
-              onTap: directory == null
-                  ? null
-                  : () => openParentDirectory(context, directory),
-              child: const Icon(
-                Icons.arrow_back,
-                size: 20.0,
-              ),
-              radius: 20.0,
-            ),
-            const SizedBox(width: 12.0),
-            Expanded(
-              child: TextField(
-                controller: urlController,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12.0,
-                    vertical: 8.0,
+        const height = 32.0;
+        const modes = ThemeMode.values;
+        return SizedBox(
+          height: height,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: height,
+                margin: const EdgeInsets.only(right: 12.0),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: EdgeInsets.zero,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: theme.colorScheme.outline,
-                    ),
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: theme.colorScheme.primary,
-                    ),
-                    borderRadius: BorderRadius.zero,
+                  onPressed: directory == null
+                      ? null
+                      : () => openParentDirectory(context, directory),
+                  child: const Icon(
+                    Icons.arrow_back,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12.0),
-            InkResponse(
-              onTap: () => changeThemeMode(context),
-              child: Icon(
-                Icons.change_circle,
-                key: changeKey,
-                size: 20.0,
+              Expanded(
+                child: TextField(
+                  controller: urlController,
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: height / 2.0,
+                      vertical: 8.0,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: theme.dividerColor,
+                      ),
+                      borderRadius: BorderRadius.circular(height / 2.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: theme.colorScheme.primary,
+                      ),
+                      borderRadius: BorderRadius.circular(height / 2.0),
+                    ),
+                  ),
+                ),
               ),
-              radius: 20.0,
-            ),
-          ],
+              Container(
+                margin: const EdgeInsets.only(left: 12.0),
+                child: ToggleButtons(
+                  borderRadius: BorderRadius.circular(height / 2.0),
+                  children: modes.map((e) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: height / 2.0,
+                      ),
+                      child: Text(e.name, key: keys[e]),
+                    );
+                  }).toList(),
+                  isSelected:
+                      modes.map((e) => settings.themeMode == e).toList(),
+                  onPressed: (i) {
+                    final mode = modes[i];
+                    changeThemeMode(context, mode);
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -207,7 +257,7 @@ class _HomeViewState extends State<HomeView> {
                     child: InkWell(
                       onDoubleTap: () {
                         final directory = Directory(drive.name);
-                        openDirectory(context, directory);
+                        openEntity(context, directory);
                       },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -236,43 +286,76 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget buildEntities(BuildContext context) {
-    return ValueListenableBuilder<List<FileSystemEntity>>(
-      valueListenable: entitiesNotifier,
-      builder: (context, entities, child) {
-        return ListView.separated(
-          itemCount: entities.length,
-          itemBuilder: (context, i) {
-            final entity = entities[i];
-            final name = entity.path.split(r'\').last;
-            final image = entity is Directory
-                ? 'images/directory.png'
-                : name.endsWith('.png')
-                    ? 'images/image.png'
-                    : 'images/unknown.png';
-            return InkWell(
-              onDoubleTap: () async {
-                if (entity is Directory) {
-                  openDirectory(context, entity);
-                }
-              },
-              child: Row(
-                children: [
-                  Image.asset(
-                    image,
-                    width: 24.0,
-                    height: 24.0,
-                  ),
-                  const SizedBox(width: 4.0),
-                  Text(name),
-                ],
+    return Row(
+      children: [
+        Expanded(
+          child: ValueListenableBuilder<List<FileSystemEntity>>(
+            valueListenable: entitiesNotifier,
+            builder: (context, entities, child) {
+              return ListView.separated(
+                itemCount: entities.length,
+                itemBuilder: (context, i) {
+                  final entity = entities[i];
+                  final name = entity.path.split(r'\').last;
+                  final image = entity is Directory
+                      ? 'images/directory.png'
+                      : entity.endsWithJPG || entity.endsWithPNG
+                          ? 'images/image.png'
+                          : 'images/unknown.png';
+                  return InkWell(
+                    onTap: () => viewEntity(context, entity),
+                    onDoubleTap: () => openEntity(context, entity),
+                    child: Row(
+                      children: [
+                        Image.asset(
+                          image,
+                          width: 24.0,
+                          height: 24.0,
+                        ),
+                        const SizedBox(width: 4.0),
+                        Text(name),
+                      ],
+                    ),
+                  );
+                },
+                separatorBuilder: (context, i) {
+                  return const SizedBox(height: 8.0);
+                },
+              );
+            },
+          ),
+        ),
+        ValueListenableBuilder<Uint8List?>(
+          valueListenable: memoryNotifier,
+          builder: (context, memory, child) {
+            return Visibility(
+              visible: memory != null,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12.0),
+                child: Image.memory(
+                  memory ?? Uint8List(0),
+                  fit: BoxFit.scaleDown,
+                  errorBuilder: (context, error, stack) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('$error'),
+                        const SizedBox(height: 20.0),
+                        ElevatedButton(
+                          onPressed: memory == null
+                              ? null
+                              : () => fixMemory(context, memory),
+                          child: const Text('Try to fix'),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             );
           },
-          separatorBuilder: (context, i) {
-            return const SizedBox(height: 8.0);
-          },
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -281,10 +364,13 @@ class _HomeViewState extends State<HomeView> {
     driveSubscription.cancel();
     directorySubscription?.cancel();
 
+    themeController.dispose();
+
     directoryNotifier.dispose();
     drivesNotifier.dispose();
     entitiesNotifier.dispose();
-    fileNotifier.dispose();
+    memoryNotifier.dispose();
+    clipArgumentsNotifier.dispose();
     super.dispose();
   }
 
@@ -304,26 +390,49 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  void openDirectory(BuildContext context, Directory directory) async {
-    try {
-      await directorySubscription?.cancel();
+  void viewEntity(BuildContext context, FileSystemEntity entity) async {
+    if (entity is File && (entity.endsWithJPG || entity.endsWithPNG)) {
+      memoryNotifier.value = await entity.readAsBytes();
+    } else {
+      memoryNotifier.value = null;
+    }
+  }
 
-      entitiesNotifier.value = await directory.list().toList();
-      directoryNotifier.value = directory;
+  void openEntity(BuildContext context, FileSystemEntity entity) async {
+    final file = memoryNotifier.value;
+    if (file != null) {
+      memoryNotifier.value = null;
+    }
+    if (entity is Directory) {
+      try {
+        await directorySubscription?.cancel();
 
-      directorySubscription = directory.watch().listen((event) async {
-        try {
-          entitiesNotifier.value = await directory.list().toList();
-        } catch (e) {
-          log('Get entities failed: $e');
-        }
-      });
-    } catch (e) {
+        entitiesNotifier.value = await entity.list().toList();
+        directoryNotifier.value = entity;
+
+        directorySubscription = entity.watch().listen((event) async {
+          try {
+            entitiesNotifier.value = await entity.list().toList();
+          } catch (e) {
+            log('Get entities failed: $e');
+          }
+        });
+      } catch (e) {
+        await showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              content: Text('$e'),
+            );
+          },
+        );
+      }
+    } else {
       await showDialog(
         context: context,
         builder: (context) {
-          return AlertDialog(
-            content: Text('$e'),
+          return const AlertDialog(
+            content: Text('Not implemented yet!'),
           );
         },
       );
@@ -331,53 +440,53 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void openParentDirectory(BuildContext context, Directory directory) {
+    if (memoryNotifier.value != null) {
+      memoryNotifier.value = null;
+    }
     if (directory.parent.path == directory.path) {
       openDrives(context);
     } else {
-      openDirectory(context, directory.parent);
+      openEntity(context, directory.parent);
     }
   }
 
-  void changeThemeMode(BuildContext context) {
-    startAnimation(context);
+  void changeThemeMode(BuildContext context, ThemeMode mode) {
     final settings = Settings.of(context);
-    switch (settings.themeMode) {
-      case ThemeMode.system:
-        final value = settings.copyWith(
-          themeMode: ThemeMode.light,
+    if (settings.themeMode == mode) {
+      return;
+    }
+    final value = settings.copyWith(
+      themeMode: mode,
+    );
+    SettingsNotification(value).dispatch(context);
+
+    final key = keys[mode]!;
+    startAnimation(context, key);
+  }
+
+  void startAnimation(BuildContext context, GlobalKey key) async {
+    final renderObject = this.key.currentContext?.findRenderObject();
+    if (renderObject is RenderRepaintBoundary) {
+      final renderBox = key.currentContext?.findRenderObject();
+      if (renderBox is RenderBox) {
+        final mediaQuery = MediaQuery.of(context);
+        final image = await renderObject.toImage(
+          pixelRatio: mediaQuery.devicePixelRatio,
         );
-        SettingsNotification(value).dispatch(context);
-        break;
-      case ThemeMode.light:
-        final value = settings.copyWith(
-          themeMode: ThemeMode.dark,
-        );
-        SettingsNotification(value).dispatch(context);
-        break;
-      case ThemeMode.dark:
-        final value = settings.copyWith(
-          themeMode: ThemeMode.system,
-        );
-        SettingsNotification(value).dispatch(context);
-        break;
-      default:
-        break;
+        final center = (Offset.zero & renderBox.size).center;
+        final offset = renderBox.localToGlobal(center, ancestor: renderObject);
+        final size = renderObject.size;
+        clipArgumentsNotifier.value = ClipArguments(image, offset, size);
+        themeController
+          ..reset()
+          ..forward();
+      }
     }
   }
 
-  void startAnimation(BuildContext context) async {
-    final renderObject = key.currentContext?.findRenderObject();
-    if (renderObject is RenderRepaintBoundary) {
-      final renderBox = changeKey.currentContext?.findRenderObject();
-      if (renderBox is RenderBox) {
-        final center = (Offset.zero & renderBox.size).center;
-        offset = renderBox.localToGlobal(center, ancestor: renderObject);
-      }
-      final mediaQuery = MediaQuery.of(context);
-      screenshotNotifier.value = await renderObject.toImage(
-        pixelRatio: mediaQuery.devicePixelRatio,
-      );
-    }
+  void fixMemory(BuildContext context, Uint8List memory) {
+    final elements = util.removeCRs(memory);
+    memoryNotifier.value = Uint8List.fromList(elements);
   }
 
   // Widget buildBoby(BuildContext context) {
@@ -408,7 +517,6 @@ class _HomeViewState extends State<HomeView> {
   //     ),
   //   );
   // }
-
 }
 
 class DriveClipper extends CustomClipper<Path> {
@@ -468,4 +576,9 @@ class DriveClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant DriveClipper oldClipper) {
     return oldClipper.radius != radius || oldClipper.spacing != spacing;
   }
+}
+
+extension on FileSystemEntity {
+  bool get endsWithJPG => path.toUpperCase().endsWith('.JPG');
+  bool get endsWithPNG => path.toUpperCase().endsWith('.PNG');
 }
