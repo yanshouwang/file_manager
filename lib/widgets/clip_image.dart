@@ -39,7 +39,6 @@ class _ClipImagePainter extends CustomPainter {
 
   @override
   void paint(ui.Canvas canvas, ui.Size size) {
-    // canvas.drawImage(image, Offset.zero, paint);
     final paint = ui.Paint();
     canvas.saveLayer(null, paint);
     canvas.drawImage(image, Offset.zero, paint);

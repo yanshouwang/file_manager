@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -66,7 +66,7 @@ class _HomeViewState extends State<HomeView>
         }
         drivesNotifier.value = drivers;
       } catch (e) {
-        log('Get drives failed: $e');
+        developer.log('Get drives failed: $e');
       }
     });
   }
@@ -85,7 +85,7 @@ class _HomeViewState extends State<HomeView>
             valueListenable: clipArgumentsNotifier,
             builder: (context, clipArguments, child) {
               if (clipArguments == null) {
-                return Container();
+                return const SizedBox.shrink();
               } else {
                 final image = clipArguments.item1;
                 final offset = clipArguments.item2;
@@ -414,7 +414,7 @@ class _HomeViewState extends State<HomeView>
           try {
             entitiesNotifier.value = await entity.list().toList();
           } catch (e) {
-            log('Get entities failed: $e');
+            developer.log('Get entities failed: $e');
           }
         });
       } catch (e) {
@@ -479,7 +479,7 @@ class _HomeViewState extends State<HomeView>
         clipArgumentsNotifier.value = ClipArguments(image, offset, size);
         themeController
           ..reset()
-          ..forward();
+          ..forward().whenComplete(() => clipArgumentsNotifier.value = null);
       }
     }
   }
