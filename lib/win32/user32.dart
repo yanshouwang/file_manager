@@ -1,10 +1,10 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, camel_case_types
 
-import 'dart:ffi';
+import 'dart:ffi' as ffi;
 
 import 'core.dart';
 
-final _user32 = DynamicLibrary.open('user32.dll');
+final _user32 = ffi.DynamicLibrary.open('user32.dll');
 
 const WH_MIN = -1;
 const WH_MSGFILTER = -1;
@@ -340,17 +340,17 @@ const DBT_DEVTYP_VOLUME = 2;
 const DBT_DEVTYP_PORT = 3;
 const DBT_DEVTYP_NET = 4;
 
-typedef HOOKPROC
-    = Pointer<NativeFunction<LRESULT Function(Int32, WPARAM, LPARAM)>>;
+typedef HOOKPROC = ffi
+    .Pointer<ffi.NativeFunction<LRESULT Function(ffi.Int32, WPARAM, LPARAM)>>;
 typedef CWPSTRUCT = tagCWPSTRUCT;
 typedef WNDCLASSW = tagWNDCLASSW;
-typedef WNDPROC
-    = Pointer<NativeFunction<LRESULT Function(HWND, UINT, WPARAM, LPARAM)>>;
-typedef LPMSG = Pointer<MSG>;
+typedef WNDPROC = ffi
+    .Pointer<ffi.NativeFunction<LRESULT Function(HWND, UINT, WPARAM, LPARAM)>>;
+typedef LPMSG = ffi.Pointer<MSG>;
 typedef MSG = tagMSG;
 typedef HDEVNOTIFY = PVOID;
 
-class tagCWPSTRUCT extends Struct {
+class tagCWPSTRUCT extends ffi.Struct {
   @LPARAM()
   external int lParam;
   @WPARAM()
@@ -360,13 +360,13 @@ class tagCWPSTRUCT extends Struct {
   external HWND hwnd;
 }
 
-class tagWNDCLASSW extends Struct {
+class tagWNDCLASSW extends ffi.Struct {
   @UINT()
   external int style;
   external WNDPROC lpfnWndProc;
-  @Int32()
+  @ffi.Int32()
   external int cbClsExtra;
-  @Int32()
+  @ffi.Int32()
   external int cbWndExtra;
   external HINSTANCE hInstance;
   external HICON hIcon;
@@ -376,7 +376,7 @@ class tagWNDCLASSW extends Struct {
   external LPCWSTR lpszClassName;
 }
 
-class tagMSG extends Struct {
+class tagMSG extends ffi.Struct {
   external HWND hwnd;
   @UINT()
   external int message;
@@ -399,8 +399,10 @@ HHOOK SetWindowsHookExW(
 }
 
 late final _SetWindowsHookExW = _user32
-    .lookup<NativeFunction<HHOOK Function(Int32, HOOKPROC, HINSTANCE, DWORD)>>(
-        'SetWindowsHookExW')
+    .lookup<
+        ffi.NativeFunction<
+            HHOOK Function(
+                ffi.Int32, HOOKPROC, HINSTANCE, DWORD)>>('SetWindowsHookExW')
     .asFunction<HHOOK Function(int, HOOKPROC, HINSTANCE, int)>();
 
 int CallNextHookEx(HHOOK hhk, int nCode, int wParam, int lParam) {
@@ -408,8 +410,10 @@ int CallNextHookEx(HHOOK hhk, int nCode, int wParam, int lParam) {
 }
 
 late final _CallNextHookEx = _user32
-    .lookup<NativeFunction<LRESULT Function(HHOOK, Int32, WPARAM, LPARAM)>>(
-        'CallNextHookEx')
+    .lookup<
+        ffi.NativeFunction<
+            LRESULT Function(
+                HHOOK, ffi.Int32, WPARAM, LPARAM)>>('CallNextHookEx')
     .asFunction<int Function(HHOOK, int, int, int)>();
 
 int UnhookWindowsHookEx(HHOOK hhk) {
@@ -417,16 +421,17 @@ int UnhookWindowsHookEx(HHOOK hhk) {
 }
 
 late final _UnhookWindowsHookEx = _user32
-    .lookup<NativeFunction<BOOL Function(HHOOK)>>('UnhookWindowsHookEx')
+    .lookup<ffi.NativeFunction<BOOL Function(HHOOK)>>('UnhookWindowsHookEx')
     .asFunction<int Function(HHOOK)>();
 
-int RegisterClassW(Pointer<WNDCLASSW> lpWndClass) {
+int RegisterClassW(ffi.Pointer<WNDCLASSW> lpWndClass) {
   return _RegisterClassW(lpWndClass);
 }
 
 late final _RegisterClassW = _user32
-    .lookup<NativeFunction<ATOM Function(Pointer<WNDCLASSW>)>>('RegisterClassW')
-    .asFunction<int Function(Pointer<WNDCLASSW>)>();
+    .lookup<ffi.NativeFunction<ATOM Function(ffi.Pointer<WNDCLASSW>)>>(
+        'RegisterClassW')
+    .asFunction<int Function(ffi.Pointer<WNDCLASSW>)>();
 
 HWND CreateWindowW(
   LPCWSTR lpClassName,
@@ -489,9 +494,20 @@ HWND CreateWindowExW(
 
 late final _CreateWindowExW = _user32
     .lookup<
-        NativeFunction<
-            HWND Function(DWORD, LPCWSTR, LPCWSTR, DWORD, Int32, Int32, Int32,
-                Int32, HWND, HMENU, HINSTANCE, LPVOID)>>('CreateWindowExW')
+        ffi.NativeFunction<
+            HWND Function(
+                DWORD,
+                LPCWSTR,
+                LPCWSTR,
+                DWORD,
+                ffi.Int32,
+                ffi.Int32,
+                ffi.Int32,
+                ffi.Int32,
+                HWND,
+                HMENU,
+                HINSTANCE,
+                LPVOID)>>('CreateWindowExW')
     .asFunction<
         HWND Function(int, LPCWSTR, LPCWSTR, int, int, int, int, int, HWND,
             HMENU, HINSTANCE, LPVOID)>();
@@ -501,15 +517,7 @@ int ShowWindow(HWND hWnd, int nCmdShow) {
 }
 
 late final _ShowWindow = _user32
-    .lookup<NativeFunction<BOOL Function(HWND, Int32)>>('ShowWindow')
-    .asFunction<int Function(HWND, int)>();
-
-int ShowWindowAsync(HWND hWnd, int nCmdShow) {
-  return _ShowWindowAsync(hWnd, nCmdShow);
-}
-
-late final _ShowWindowAsync = _user32
-    .lookup<NativeFunction<BOOL Function(HWND, Int32)>>('ShowWindowAsync')
+    .lookup<ffi.NativeFunction<BOOL Function(HWND, ffi.Int32)>>('ShowWindow')
     .asFunction<int Function(HWND, int)>();
 
 int UpdateWindow(HWND hWnd) {
@@ -517,7 +525,7 @@ int UpdateWindow(HWND hWnd) {
 }
 
 late final _UpdateWindow = _user32
-    .lookup<NativeFunction<BOOL Function(HWND)>>('UpdateWindow')
+    .lookup<ffi.NativeFunction<BOOL Function(HWND)>>('UpdateWindow')
     .asFunction<int Function(HWND)>();
 
 HICON LoadIconW(HINSTANCE hInstance, LPCWSTR lpIconName) {
@@ -525,7 +533,7 @@ HICON LoadIconW(HINSTANCE hInstance, LPCWSTR lpIconName) {
 }
 
 late final _LoadIconW = _user32
-    .lookup<NativeFunction<HICON Function(HINSTANCE, LPCWSTR)>>('LoadIconW')
+    .lookup<ffi.NativeFunction<HICON Function(HINSTANCE, LPCWSTR)>>('LoadIconW')
     .asFunction<HICON Function(HINSTANCE, LPCWSTR)>();
 
 HCURSOR LoadCursorW(HINSTANCE hInstance, LPCWSTR lpCursorName) {
@@ -533,7 +541,8 @@ HCURSOR LoadCursorW(HINSTANCE hInstance, LPCWSTR lpCursorName) {
 }
 
 late final _LoadCursorW = _user32
-    .lookup<NativeFunction<HCURSOR Function(HINSTANCE, LPCWSTR)>>('LoadCursorW')
+    .lookup<ffi.NativeFunction<HCURSOR Function(HINSTANCE, LPCWSTR)>>(
+        'LoadCursorW')
     .asFunction<HCURSOR Function(HINSTANCE, LPCWSTR)>();
 
 int DefWindowProcW(HWND hWnd, int Msg, int wParam, int lParam) {
@@ -541,7 +550,7 @@ int DefWindowProcW(HWND hWnd, int Msg, int wParam, int lParam) {
 }
 
 late final _DefWindowProcW = _user32
-    .lookup<NativeFunction<LRESULT Function(HWND, UINT, WPARAM, LPARAM)>>(
+    .lookup<ffi.NativeFunction<LRESULT Function(HWND, UINT, WPARAM, LPARAM)>>(
         'DefWindowProcW')
     .asFunction<int Function(HWND, int, int, int)>();
 
@@ -550,25 +559,27 @@ int GetMessageW(LPMSG lpMsg, HWND hWnd, int wMsgFilterMin, int wMsgFilterMax) {
 }
 
 late final _GetMessageW = _user32
-    .lookup<NativeFunction<BOOL Function(LPMSG, HWND, UINT, UINT)>>(
+    .lookup<ffi.NativeFunction<BOOL Function(LPMSG, HWND, UINT, UINT)>>(
         'GetMessageW')
     .asFunction<int Function(LPMSG, HWND, int, int)>();
 
-int TranslateMessage(Pointer<MSG> lpMsg) {
+int TranslateMessage(ffi.Pointer<MSG> lpMsg) {
   return _TranslateMessage(lpMsg);
 }
 
 late final _TranslateMessage = _user32
-    .lookup<NativeFunction<BOOL Function(Pointer<MSG>)>>('TranslateMessage')
-    .asFunction<int Function(Pointer<MSG>)>();
+    .lookup<ffi.NativeFunction<BOOL Function(ffi.Pointer<MSG>)>>(
+        'TranslateMessage')
+    .asFunction<int Function(ffi.Pointer<MSG>)>();
 
-int DispatchMessageW(Pointer<MSG> lpMsg) {
+int DispatchMessageW(ffi.Pointer<MSG> lpMsg) {
   return _DispatchMessageW(lpMsg);
 }
 
 late final _DispatchMessageW = _user32
-    .lookup<NativeFunction<LRESULT Function(Pointer<MSG>)>>('DispatchMessageW')
-    .asFunction<int Function(Pointer<MSG>)>();
+    .lookup<ffi.NativeFunction<LRESULT Function(ffi.Pointer<MSG>)>>(
+        'DispatchMessageW')
+    .asFunction<int Function(ffi.Pointer<MSG>)>();
 
 HDEVNOTIFY RegisterDeviceNotificationW(
   HANDLE hRecipient,
@@ -579,7 +590,7 @@ HDEVNOTIFY RegisterDeviceNotificationW(
 }
 
 late final _RegisterDeviceNotificationW = _user32
-    .lookup<NativeFunction<HDEVNOTIFY Function(HANDLE, LPVOID, DWORD)>>(
+    .lookup<ffi.NativeFunction<HDEVNOTIFY Function(HANDLE, LPVOID, DWORD)>>(
         'RegisterDeviceNotificationW')
     .asFunction<HDEVNOTIFY Function(HANDLE, LPVOID, int)>();
 
@@ -588,6 +599,6 @@ int UnregisterDeviceNotification(HDEVNOTIFY Handle) {
 }
 
 late final _UnregisterDeviceNotification = _user32
-    .lookup<NativeFunction<BOOL Function(HDEVNOTIFY)>>(
+    .lookup<ffi.NativeFunction<BOOL Function(HDEVNOTIFY)>>(
         'UnregisterDeviceNotification')
     .asFunction<int Function(HDEVNOTIFY)>();

@@ -1,49 +1,51 @@
 // ignore_for_file: camel_case_types, non_constant_identifier_names, constant_identifier_names
 
 import 'dart:convert';
-import 'dart:ffi';
+import 'dart:ffi' as ffi;
 
 import 'package:ffi/ffi.dart' as ffi;
 
+final NULL = ffi.nullptr;
+
 // intsafe.h
-typedef CHAR = Int8;
-typedef INT8 = Int8;
-typedef UCHAR = Uint8;
-typedef UINT8 = Uint8;
-typedef BYTE = Uint8;
-typedef SHORT = Int16;
-typedef INT16 = Int16;
-typedef USHORT = Uint16;
-typedef UINT16 = Uint16;
-typedef WORD = Uint16;
-typedef INT = Int32;
-typedef INT32 = Int32;
-typedef UINT = Uint32;
-typedef UINT32 = Uint32;
-typedef LONG = Int32;
-typedef ULONG = Uint32;
-typedef DWORD = Uint32;
-typedef LONGLONG = Int64;
-typedef LONG64 = Int64;
-typedef INT64 = Int64;
-typedef ULONGLONG = Uint64;
-typedef DWORDLONG = Uint64;
-typedef ULONG64 = Uint64;
-typedef DWORD64 = Uint64;
-typedef UINT64 = Uint64;
+typedef CHAR = ffi.Int8;
+typedef INT8 = ffi.Int8;
+typedef UCHAR = ffi.Uint8;
+typedef UINT8 = ffi.Uint8;
+typedef BYTE = ffi.Uint8;
+typedef SHORT = ffi.Int16;
+typedef INT16 = ffi.Int16;
+typedef USHORT = ffi.Uint16;
+typedef UINT16 = ffi.Uint16;
+typedef WORD = ffi.Uint16;
+typedef INT = ffi.Int32;
+typedef INT32 = ffi.Int32;
+typedef UINT = ffi.Uint32;
+typedef UINT32 = ffi.Uint32;
+typedef LONG = ffi.Int32;
+typedef ULONG = ffi.Uint32;
+typedef DWORD = ffi.Uint32;
+typedef LONGLONG = ffi.Int64;
+typedef LONG64 = ffi.Int64;
+typedef INT64 = ffi.Int64;
+typedef ULONGLONG = ffi.Uint64;
+typedef DWORDLONG = ffi.Uint64;
+typedef ULONG64 = ffi.Uint64;
+typedef DWORD64 = ffi.Uint64;
+typedef UINT64 = ffi.Uint64;
 
 // winnt.h
-typedef wchar_t = Uint16;
+typedef wchar_t = ffi.Uint16;
 typedef WCHAR = wchar_t;
-typedef LPWSTR = Pointer<WCHAR>;
-typedef LPCWSTR = Pointer<WCHAR>;
-typedef LPSTR = Pointer<CHAR>;
-typedef HANDLE = Pointer<Void>;
-typedef PVOID = Pointer<Void>;
+typedef LPWSTR = ffi.Pointer<WCHAR>;
+typedef LPCWSTR = ffi.Pointer<WCHAR>;
+typedef LPSTR = ffi.Pointer<CHAR>;
+typedef HANDLE = ffi.Pointer<ffi.Void>;
+typedef PVOID = ffi.Pointer<ffi.Void>;
 
 // basetsd.h
-typedef LONG_PTR = Int64;
-typedef UINT_PTR = Uint64;
+typedef LONG_PTR = ffi.Int64;
+typedef UINT_PTR = ffi.Uint64;
 
 // windef.h
 typedef LRESULT = LONG_PTR;
@@ -52,22 +54,39 @@ typedef LPARAM = LONG_PTR;
 typedef HINSTANCE = HANDLE;
 typedef HMODULE = HINSTANCE;
 typedef HHOOK = HANDLE;
-typedef BOOL = Int32;
+typedef BOOL = ffi.Int32;
 typedef HWND = HANDLE;
 typedef HICON = HANDLE;
 typedef HCURSOR = HICON;
 typedef HBRUSH = HANDLE;
 typedef ATOM = WORD;
-typedef LPVOID = Pointer<Void>;
+typedef LPVOID = ffi.Pointer<ffi.Void>;
 typedef HMENU = HANDLE;
 typedef HGDIOBJ = HANDLE;
 typedef POINT = tagPOINT;
+typedef LPBYTE = ffi.Pointer<BYTE>;
 
-class tagPOINT extends Struct {
+// winbase.h
+const INFINITE = 4294967295;
+
+typedef SECURITY_ATTRIBUTES = _SECURITY_ATTRIBUTES;
+typedef LPSECURITY_ATTRIBUTES = ffi.Pointer<_SECURITY_ATTRIBUTES>;
+
+class tagPOINT extends ffi.Struct {
   @LONG()
   external int x;
   @LONG()
   external int y;
+}
+
+class _SECURITY_ATTRIBUTES extends ffi.Struct {
+  @DWORD()
+  external int nLength;
+
+  external LPVOID lpSecurityDescriptor;
+
+  @BOOL()
+  external int bInheritHandle;
 }
 
 // dbt.h
@@ -76,7 +95,7 @@ const DBT_DEVTYP_HANDLE = 0x00000006;
 
 typedef DEV_BROADCAST_DEVICEINTERFACE_W = _DEV_BROADCAST_DEVICEINTERFACE_W;
 
-class _DEV_BROADCAST_DEVICEINTERFACE_W extends Struct {
+class _DEV_BROADCAST_DEVICEINTERFACE_W extends ffi.Struct {
   @DWORD()
   external int dbcc_size;
   @DWORD()
@@ -84,22 +103,22 @@ class _DEV_BROADCAST_DEVICEINTERFACE_W extends Struct {
   @DWORD()
   external int dbcc_reserved;
   external GUID dbcc_classguid;
-  @Array(1)
-  external Array<wchar_t> dbcc_name;
+  @ffi.Array(1)
+  external ffi.Array<wchar_t> dbcc_name;
 }
 
 // guiddef.h
 typedef GUID = _GUID;
 
-class _GUID extends Struct {
-  @Uint32()
+class _GUID extends ffi.Struct {
+  @ffi.Uint32()
   external int Data1;
-  @Uint16()
+  @ffi.Uint16()
   external int Data2;
-  @Uint16()
+  @ffi.Uint16()
   external int Data3;
-  @Array(8)
-  external Array<Uint8> Data4;
+  @ffi.Array(8)
+  external ffi.Array<ffi.Uint8> Data4;
 
   void setValue(int data1, int data2, int data3, List<int> data4) {
     Data1 = data1;
@@ -122,7 +141,7 @@ class Win32Exception implements Exception {
   }
 }
 
-extension Uint16PointerX on Pointer<Uint16> {
+extension Uint16PointerX on ffi.Pointer<ffi.Uint16> {
   String toDartString() {
     return cast<ffi.Utf16>().toDartString();
   }
@@ -147,12 +166,13 @@ extension Uint16PointerX on Pointer<Uint16> {
 }
 
 extension StringX on String {
-  Pointer<Uint16> toNativeUint16Pointer({Allocator allocator = ffi.malloc}) {
+  ffi.Pointer<ffi.Uint16> toNativeUint16Pointer(
+      {ffi.Allocator allocator = ffi.malloc}) {
     return toNativeUtf16(allocator: allocator).cast();
   }
 }
 
-extension Int8PointerX on Pointer<Int8> {
+extension Int8PointerX on ffi.Pointer<ffi.Int8> {
   String toDartString() {
     return cast<ffi.Utf8>().toDartString();
   }

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ffi';
+import 'dart:ffi' as ffi;
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart' as ffi;
@@ -21,10 +21,10 @@ void runMessagesIsolate() {
 
 void _entryPoint(SendPort sender) {
   _sender = sender;
-  final hInstance = win32.GetModuleHandleW(nullptr);
+  final hInstance = win32.GetModuleHandleW(win32.NULL);
 
   const style = win32.CS_HREDRAW | win32.CS_VREDRAW;
-  final lpfnWndProc = Pointer.fromFunction<
+  final lpfnWndProc = ffi.Pointer.fromFunction<
       win32.LRESULT Function(
           win32.HWND, win32.UINT, win32.WPARAM, win32.LPARAM)>(_wndProc, 0);
   final lpszClassName = 'messages class'.toNativeUint16Pointer();
@@ -51,11 +51,11 @@ void _entryPoint(SendPort sender) {
       win32.CW_USEDEFAULT,
       win32.CW_USEDEFAULT,
       hWndParent,
-      nullptr,
+      win32.NULL,
       hInstance,
-      nullptr,
+      win32.NULL,
     );
-    if (hWnd == nullptr) {
+    if (hWnd == win32.NULL) {
       final statusCode = win32.GetLastError();
       throw win32.Win32Exception(statusCode);
     }
@@ -85,7 +85,7 @@ int _wndProc(win32.HWND hWnd, int uMsg, int wParam, int lParam) {
   if (uMsg == win32.WM_CREATE) {
     final notificationFilter =
         ffi.calloc<win32.DEV_BROADCAST_DEVICEINTERFACE_W>()
-          ..ref.dbcc_size = sizeOf<win32.DEV_BROADCAST_DEVICEINTERFACE_W>()
+          ..ref.dbcc_size = ffi.sizeOf<win32.DEV_BROADCAST_DEVICEINTERFACE_W>()
           ..ref.dbcc_devicetype = win32.DBT_DEVTYP_DEVICEINTERFACE
           ..ref.dbcc_classguid.setValue(
             0x53f5630d,
@@ -100,7 +100,7 @@ int _wndProc(win32.HWND hWnd, int uMsg, int wParam, int lParam) {
         notificationFilter.cast(),
         flags,
       );
-      if (deviceNotifyPointer == nullptr) {
+      if (deviceNotifyPointer == win32.NULL) {
         final statusCode = win32.GetLastError();
         throw win32.Win32Exception(statusCode);
       }
@@ -108,7 +108,6 @@ int _wndProc(win32.HWND hWnd, int uMsg, int wParam, int lParam) {
       ffi.calloc.free(notificationFilter);
     }
   }
-  print('WndProc: $uMsg $wParam $lParam');
   final message = _Message(uMsg, wParam, lParam);
   _sender.send(message);
   return win32.DefWindowProcW(hWnd, uMsg, wParam, lParam);
@@ -144,12 +143,12 @@ List<Drive> getDrives() {
 }
 
 List<String> getDriveNamesA() {
-  final length0 = win32.GetLogicalDriveStringsA(0, nullptr);
+  final length0 = win32.GetLogicalDriveStringsA(0, win32.NULL);
   if (length0 == 0) {
     final statusCode = win32.GetLastError();
     throw win32.Win32Exception(statusCode);
   }
-  final byteCount = sizeOf<win32.CHAR>() * length0;
+  final byteCount = ffi.sizeOf<win32.CHAR>() * length0;
   final driveNamesPointer = ffi.calloc.allocate<win32.CHAR>(byteCount);
   try {
     final length1 = win32.GetLogicalDriveStringsA(length0, driveNamesPointer);
@@ -164,12 +163,12 @@ List<String> getDriveNamesA() {
 }
 
 List<String> getDriveNamesW() {
-  final length0 = win32.GetLogicalDriveStringsW(0, nullptr);
+  final length0 = win32.GetLogicalDriveStringsW(0, win32.NULL);
   if (length0 == 0) {
     final statusCode = win32.GetLastError();
     throw win32.Win32Exception(statusCode);
   }
-  final byteCount = sizeOf<win32.WCHAR>() * length0;
+  final byteCount = ffi.sizeOf<win32.WCHAR>() * length0;
   final driveNamesPointer = ffi.calloc.allocate<win32.WCHAR>(byteCount);
   try {
     final length1 = win32.GetLogicalDriveStringsW(length0, driveNamesPointer);
@@ -189,5 +188,50 @@ int getDriveTypeW(String dirveName) {
     return win32.GetDriveTypeW(driveNamePointer);
   } finally {
     ffi.malloc.free(driveNamePointer);
+  }
+}
+
+// TODO: /system/bin/sh: can't create xxx.png: Read-only file system
+void screencap(String path) {
+  final lpApplicationName = win32.NULL;
+  final lpCommandLine = 'adb shell screencap -p >$path'.toNativeUint16Pointer();
+  final lpProcessAttributes = win32.NULL;
+  final lpThreadAttributes = win32.NULL;
+  const bInheritHandles = 0;
+  const dwCreationFlags = 0;
+  final lpEnvironment = win32.NULL;
+  final lpCurrentDirectory = win32.NULL;
+  final lpStartupInfo = ffi.calloc<win32.STARTUPINFOW>()
+    ..ref.cb = ffi.sizeOf<win32.STARTUPINFOW>();
+  final lpProcessInformation = ffi.calloc<win32.PROCESS_INFORMATION>();
+  try {
+    final created = win32.CreateProcessW(
+      lpApplicationName,
+      lpCommandLine,
+      lpProcessAttributes,
+      lpThreadAttributes,
+      bInheritHandles,
+      dwCreationFlags,
+      lpEnvironment,
+      lpCurrentDirectory,
+      lpStartupInfo,
+      lpProcessInformation,
+    );
+    if (created == 0) {
+      final statusCode = win32.GetLastError();
+      throw win32.Win32Exception(statusCode);
+    }
+    // Wait until child process exits.
+    win32.WaitForSingleObject(
+      lpProcessInformation.ref.hProcess,
+      win32.INFINITE,
+    );
+    // Close process and thread handles.
+    win32.CloseHandle(lpProcessInformation.ref.hProcess);
+    win32.CloseHandle(lpProcessInformation.ref.hThread);
+  } finally {
+    ffi.malloc.free(lpCommandLine);
+    ffi.calloc.free(lpStartupInfo);
+    ffi.calloc.free(lpProcessInformation);
   }
 }
