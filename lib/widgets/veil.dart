@@ -2,36 +2,39 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-class ClipImage extends StatelessWidget {
+class Veil extends StatelessWidget {
   final ui.Image image;
   final ui.Offset offset;
   final double radius;
+  final Widget? child;
 
-  const ClipImage({
+  const Veil({
     Key? key,
     required this.image,
     required this.offset,
     required this.radius,
+    this.child,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _ClipImagePainter(
+      foregroundPainter: _VeilPainter(
         image: image,
         offset: offset,
         radius: radius,
       ),
+      child: child,
     );
   }
 }
 
-class _ClipImagePainter extends CustomPainter {
+class _VeilPainter extends CustomPainter {
   final ui.Image image;
   final ui.Offset offset;
   final double radius;
 
-  const _ClipImagePainter({
+  const _VeilPainter({
     required this.image,
     required this.offset,
     required this.radius,
@@ -48,7 +51,7 @@ class _ClipImagePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ClipImagePainter oldDelegate) {
+  bool shouldRepaint(covariant _VeilPainter oldDelegate) {
     return oldDelegate.image != image ||
         oldDelegate.offset != offset ||
         oldDelegate.radius != radius;

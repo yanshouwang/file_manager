@@ -34,7 +34,7 @@ class _HomeViewState extends State<HomeView>
   late StreamSubscription<DriveState> driveSubscription;
   late ValueNotifier<ClipArguments?> clipArgumentsNotifier;
 
-  late AnimationController themeController;
+  late AnimationController unveilController;
 
   StreamSubscription<FileSystemEvent>? directorySubscription;
 
@@ -48,7 +48,7 @@ class _HomeViewState extends State<HomeView>
     memoryNotifier = ValueNotifier(null);
     clipArgumentsNotifier = ValueNotifier(null);
 
-    themeController = AnimationController(
+    unveilController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
@@ -73,47 +73,44 @@ class _HomeViewState extends State<HomeView>
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      key: key,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Scaffold(
-            body: buildBoby(context),
-          ),
-          ValueListenableBuilder<ClipArguments?>(
-            valueListenable: clipArgumentsNotifier,
-            builder: (context, clipArguments, child) {
-              if (clipArguments == null) {
-                return const SizedBox.shrink();
-              } else {
-                final image = clipArguments.item1;
-                final offset = clipArguments.item2;
-                final size = clipArguments.item3;
-                final bounds = Offset.zero & size;
-                final d0 = (offset - bounds.topLeft).distance;
-                final d1 = (offset - bounds.topRight).distance;
-                final d2 = (offset - bounds.bottomRight).distance;
-                final d3 = (offset - bounds.bottomLeft).distance;
-                final distance = [d0, d1, d2, d3].reduce(math.max);
-                final animation = CurvedAnimation(
-                  parent: themeController,
-                  curve: Curves.easeInOut,
-                );
-                return AnimatedBuilder(
-                  animation: animation,
-                  builder: (context, child) {
-                    return ClipImage(
-                      image: image,
-                      offset: offset,
-                      radius: distance * animation.value,
-                    );
-                  },
-                );
-              }
+    return ValueListenableBuilder<ClipArguments?>(
+      valueListenable: clipArgumentsNotifier,
+      builder: (context, clipArguments, child) {
+        if (clipArguments == null) {
+          return child ?? const SizedBox.shrink();
+        } else {
+          final image = clipArguments.item1;
+          final offset = clipArguments.item2;
+          final size = clipArguments.item3;
+          final bounds = Offset.zero & size;
+          final d0 = (offset - bounds.topLeft).distance;
+          final d1 = (offset - bounds.topRight).distance;
+          final d2 = (offset - bounds.bottomRight).distance;
+          final d3 = (offset - bounds.bottomLeft).distance;
+          final distance = [d0, d1, d2, d3].reduce(math.max);
+          final animation = CurvedAnimation(
+            parent: unveilController,
+            curve: Curves.easeInOut,
+          );
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (context, child) {
+              return Veil(
+                image: image,
+                offset: offset,
+                radius: distance * animation.value,
+                child: child,
+              );
             },
-          ),
-        ],
+            child: child,
+          );
+        }
+      },
+      child: RepaintBoundary(
+        key: key,
+        child: Scaffold(
+          body: buildBoby(context),
+        ),
       ),
     );
   }
@@ -364,7 +361,7 @@ class _HomeViewState extends State<HomeView>
     driveSubscription.cancel();
     directorySubscription?.cancel();
 
-    themeController.dispose();
+    unveilController.dispose();
 
     directoryNotifier.dispose();
     drivesNotifier.dispose();
@@ -461,10 +458,10 @@ class _HomeViewState extends State<HomeView>
     SettingsNotification(value).dispatch(context);
 
     final key = keys[mode]!;
-    startAnimation(context, key);
+    unveil(context, key);
   }
 
-  void startAnimation(BuildContext context, GlobalKey key) async {
+  void unveil(BuildContext context, GlobalKey key) async {
     final renderObject = this.key.currentContext?.findRenderObject();
     if (renderObject is RenderRepaintBoundary) {
       final renderBox = key.currentContext?.findRenderObject();
@@ -477,7 +474,7 @@ class _HomeViewState extends State<HomeView>
         final offset = renderBox.localToGlobal(center, ancestor: renderObject);
         final size = renderObject.size;
         clipArgumentsNotifier.value = ClipArguments(image, offset, size);
-        themeController
+        unveilController
           ..reset()
           ..forward().whenComplete(() => clipArgumentsNotifier.value = null);
       }
@@ -488,35 +485,6 @@ class _HomeViewState extends State<HomeView>
     final elements = util.removeCRs(memory);
     memoryNotifier.value = Uint8List.fromList(elements);
   }
-
-  // Widget buildBoby(BuildContext context) {
-  //   return Center(
-  //     child: ElevatedButton(
-  //       style: ElevatedButton.styleFrom(
-  //         minimumSize: Size.zero,
-  //         fixedSize: const Size.fromHeight(32.0),
-  //         shape: RoundedRectangleBorder(
-  //           borderRadius: BorderRadius.circular(16.0),
-  //         ),
-  //       ),
-  //       onPressed: () async {
-  //         final result = await FilePicker.platform.pickFiles();
-  //         if (result != null) {
-  //           final file = File(result.files.single.path!);
-  //           final directory = file.parent;
-  //           final bytes = await file.readAsBytes();
-  //           final cleanedBytes = util.clean(bytes);
-  //           final cleanedPath = '${directory.path}\\cleaned.png';
-  //           final sink = File(cleanedPath).openWrite();
-  //           sink.add(cleanedBytes);
-  //           await sink.flush();
-  //           await sink.close();
-  //         } else {}
-  //       },
-  //       child: const Text('选择文件'),
-  //     ),
-  //   );
-  // }
 }
 
 class DriveClipper extends CustomClipper<Path> {
